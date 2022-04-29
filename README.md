@@ -3,3 +3,9 @@
 Preliminary Reprository to collect issues and ideas.
 
 Will be moved into the OXRS-EcoSystem when relased.
+
+firmware-WT32-dev-0.1.5 available
+
+- improved Home/Back button sesitivity
+- improved memory handling (allow 48 tiles)
+- ThemeColor change via AdminUI or MQTT conf/ takes imediately effect 
