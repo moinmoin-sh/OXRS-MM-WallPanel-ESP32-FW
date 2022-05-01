@@ -4,6 +4,12 @@ Preliminary Reprository to collect issues and ideas.
 
 Will be moved into the OXRS-EcoSystem when relased.
 
+
+firmware-WT32-dev-0.1.6
+
+- experimental swipe right/left implementation
+
+
 firmware-WT32-dev-0.1.5 available
 
 - improved Home/Back button sesitivity
