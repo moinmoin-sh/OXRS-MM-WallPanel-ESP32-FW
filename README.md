@@ -5,6 +5,14 @@ Preliminary Reprository to collect issues and ideas.
 Will be moved into the OXRS-EcoSystem when relased.
 
 
+firmware-WT32-dev-0.1.7
+
+- experimental swipe right/left implementation
+  the footer area of the screen is enabled to accept swipe gesture to change sreens
+- tile `onColor` back to default with `"color":[]`
+- improved touch detection (backligth slider behaves smoother)
+
+
 firmware-WT32-dev-0.1.6
 
 - experimental swipe right/left implementation
