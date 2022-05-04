@@ -5,6 +5,17 @@ Preliminary Reprository to collect issues and ideas.
 Will be moved into the OXRS-EcoSystem when relased.
 
 
+
+firmware-WT32-dev-0.1.8
+
+- finished swipe integration
+- back buton removed
+- fixed default color for on and off state
+- send backlight value when changed via `tele/` 
+- new tile type `onoff`
+- more clean up
+
+
 firmware-WT32-dev-0.1.7
 
 - experimental swipe right/left implementation
