@@ -19,6 +19,7 @@ firmware-WT32-dev-0.1.8
 firmware-WT32-dev-0.1.7
 
 - experimental swipe right/left implementation
+- 
   the footer area of the screen is enabled to accept swipe gesture to change sreens
 - tile `onColor` back to default with `"color":[]`
 - improved touch detection (backligth slider behaves smoother)
