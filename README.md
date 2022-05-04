@@ -6,6 +6,7 @@ Will be moved into the OXRS-EcoSystem when relased.
 
 
 
+
 firmware-WT32-dev-0.1.8
 
 - finished swipe integration
