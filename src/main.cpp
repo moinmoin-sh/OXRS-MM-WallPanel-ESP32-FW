@@ -88,9 +88,11 @@ const void *imgOnOff = &ios_onoff_60;
 
 int _act_BackLight;
 bool _connectionStatus = false;
+uint32_t _noActivityTimeOut = 0L;
 
-// holds all screen objects
-classScreen screens[SCREEN_ALL_MAX];
+
+    // holds all screen objects
+    classScreen screens[SCREEN_ALL_MAX];
 
 // tileVault holds all tiles
 classTileList tileVault = classTileList();
@@ -219,6 +221,20 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
   Serial.println(data->point.y);
 }
 
+// check for timeout inactivity timeout
+void checkNoAvtivity(void)
+{
+  // observer disabled
+  if (_noActivityTimeOut == 0)
+    return;
+  // Screen is HomeScreen
+  if (lv_scr_act() == screens[SCREEN_HOME].screen)
+    return;
+  // time elapsed, jump to HomeScreen
+  if (lv_disp_get_inactive_time(NULL) > _noActivityTimeOut)
+    lv_disp_load_scr(screens[SCREEN_HOME].screen);
+}
+
 /*
  * ui helper functions
  */
@@ -313,7 +329,6 @@ void updateConnectionStatus(void)
 }
 
 /*--------------------------- Program ------------------------------------*/
-
 
 void selectScreen(int screen)
 {
@@ -629,6 +644,12 @@ void jsonConfig(JsonVariant json)
     jsonThemeColorConfig(json["colortheme"]);
   }
 
+  if (json.containsKey("noActivitySeconds"))
+  {
+    _noActivityTimeOut = json["noActivitySeconds"].as<int>() * 1000;
+  }
+ 
+
   if (json.containsKey("screens"))
   {
     for (JsonVariant screen : json["screens"].as<JsonArray>())
@@ -755,6 +776,14 @@ void screenConfigSchema(JsonVariant json)
   blue["type"] = "integer";
   blue["minimum"] = 0;
   blue["maximum"] = 255;
+
+  // noActivity timeout
+  JsonObject noActivitySeconds = json.createNestedObject("noActivitySeconds");
+  noActivitySeconds["title"] = "Return to HomeScreen after Timeout (seconds) of no activity";
+  noActivitySeconds["description"] = "Display shows HomeScreen after Timeout (seconds) of no activity. 0 disables.";
+  noActivitySeconds["type"] = "integer";
+  noActivitySeconds["minimum"] = 0;
+  noActivitySeconds["maximum"] = 600;
 }
 
 void setConfigSchema()
@@ -1020,6 +1049,7 @@ void loop()
   // Let WT32 hardware handle any events etc
   wt32.loop();
   updateConnectionStatus();
+  checkNoAvtivity();
 
   // let the GUI do its work
   lv_timer_handler();
