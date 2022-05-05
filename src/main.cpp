@@ -956,7 +956,7 @@ void setup()
   // Start serial and let settle
   Serial.begin(SERIAL_BAUD_RATE);
   delay(1000);
-  Serial.println(F("[wt32] starting up..."));
+  Serial.println(F("[wpan] starting up..."));
 
   // set up for backlight dimming (PWM)
   ledcSetup(BL_PWM_CHANNEL, BL_PWM_FREQ, BL_PWM_RESOLUTION);
