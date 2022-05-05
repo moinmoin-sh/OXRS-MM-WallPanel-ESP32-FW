@@ -11,6 +11,7 @@ enum tileType_t
   ONOFF,
   ROOM,
   SETTINGS,
+  SPEAKER,
   THERMOMETER,
   WINDOW
 };

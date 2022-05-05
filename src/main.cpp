@@ -64,6 +64,7 @@ extern "C" const lv_img_dsc_t ios_thermometer_60;
 extern "C" const lv_img_dsc_t ui_img_austins_black_320x70_png;
 extern "C" const lv_img_dsc_t splash;
 extern "C" const lv_img_dsc_t ios_onoff_60;
+extern "C" const lv_img_dsc_t ios_speaker_60;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -80,6 +81,7 @@ const void *imgThermo = &ios_thermometer_60;
 const void *imgAustin = &ui_img_austins_black_320x70_png;
 const void *imgSplash = &splash;
 const void *imgOnOff = &ios_onoff_60;
+const void *imgSpeaker = &ios_speaker_60;
 
 int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
@@ -498,6 +500,9 @@ const void *getIconFromType(int tileType)
   case SETTINGS:
     img = imgSettings;
     break;
+  case SPEAKER:
+    img = imgSpeaker;
+    break;
   case THERMOMETER:
     img = imgThermo;
     break;
@@ -564,6 +569,7 @@ void createInputTypeEnum(JsonObject parent)
   typeEnum.add("number");
   typeEnum.add("onoff");
   typeEnum.add("room");
+  typeEnum.add("speaker");
   typeEnum.add("thermometer");
   typeEnum.add("window");
 }
@@ -597,6 +603,10 @@ int parseInputType(const char *inputType)
   if (strcmp(inputType, "room") == 0)
   {
     return ROOM;
+  }
+  if (strcmp(inputType, "speaker") == 0)
+  {
+    return SPEAKER;
   }
   if (strcmp(inputType, "thermometer") == 0)
   {
