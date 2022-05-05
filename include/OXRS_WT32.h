@@ -17,16 +17,15 @@
 // REST API
 #define REST_API_PORT 80
 
+// Macro for converting env vars to strings
+#define STRINGIFY(s) STRINGIFY1(s)
+#define STRINGIFY1(s) #s
+
+enum connectionState_t { CONNECTED_NONE, CONNECTED_IP, CONNECTED_MQTT };
+
 class OXRS_WT32
 {
 public:
-  OXRS_WT32(
-      const char *fwName,
-      const char *fwShortName,
-      const char *fwMaker,
-      const char *fwVersion,
-      const uint8_t *fwLogo = NULL);
-
   // These are only needed if performing manual configuration in your sketch, otherwise
   // config is provisioned via the API and bootstrap page
   void setMqttBroker(const char *broker, uint16_t port);
@@ -48,8 +47,9 @@ public:
 
   void getIPaddressTxt(char *buffer);
   void getMACaddressTxt(char *buffer);
-  void getMQTTtopicTxT(char *buffer);
-  bool getConnected(void);
+  void getMQTTtopicTxt(char *buffer);
+
+  connectionState_t getConnectionState(void);
 
   void restartApi(void);
 

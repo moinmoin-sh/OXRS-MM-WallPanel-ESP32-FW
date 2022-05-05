@@ -8,7 +8,10 @@
 #include <Ethernet.h>     // For networking
 #include <WiFi.h>         // Required for Ethernet to get MAC
 #include <PubSubClient.h> // For MQTT
-#include <WiFiManager.h>
+
+#ifdef WIFI_MODE
+#include <WiFiManager.h>  // For WiFi AP config
+#endif
 
 #ifndef WIFI_MODE
 // Ethernet client
@@ -30,13 +33,6 @@ WiFiServer _server(REST_API_PORT);
 #endif
 
 OXRS_API _api(_mqtt);
-
-// Firmware details
-const char *_fwName;
-const char *_fwShortName;
-const char *_fwMaker;
-const char *_fwVersion;
-const uint8_t *_fwLogo;
 
 // Supported firmware config and command schemas
 DynamicJsonDocument _fwConfigSchema(2048);
@@ -67,10 +63,10 @@ void _getFirmwareJson(JsonVariant json)
 {
   JsonObject firmware = json.createNestedObject("firmware");
 
-  firmware["name"] = _fwName;
-  firmware["shortName"] = _fwShortName;
-  firmware["maker"] = _fwMaker;
-  firmware["version"] = _fwVersion;
+  firmware["name"] = STRINGIFY(FW_NAME);
+  firmware["shortName"] = STRINGIFY(FW_SHORT_NAME);
+  firmware["maker"] = STRINGIFY(FW_MAKER);
+  firmware["version"] = STRINGIFY(FW_VERSION);
 }
 
 void _getSystemJson(JsonVariant json)
@@ -97,9 +93,13 @@ void _getNetworkJson(JsonVariant json)
 
 #ifndef WIFI_MODE
   Ethernet.MACAddress(mac);
+  
+  network["mode"] = "ethernet";
   network["ip"] = Ethernet.localIP();
 #else
   WiFi.macAddress(mac);
+
+  network["mode"] = "wifi";
   network["ip"] = WiFi.localIP();
 #endif
 
@@ -114,7 +114,7 @@ void _getConfigSchemaJson(JsonVariant json)
 
   // Config schema metadata
   configSchema["$schema"] = JSON_SCHEMA_VERSION;
-  configSchema["title"] = _fwName;
+  configSchema["title"] = STRINGIFY(FW_SHORT_NAME);
   configSchema["type"] = "object";
 
   JsonObject properties = configSchema.createNestedObject("properties");
@@ -132,7 +132,7 @@ void _getCommandSchemaJson(JsonVariant json)
 
   // Command schema metadata
   commandSchema["$schema"] = JSON_SCHEMA_VERSION;
-  commandSchema["title"] = _fwName;
+  commandSchema["title"] = STRINGIFY(FW_SHORT_NAME);
   commandSchema["type"] = "object";
 
   JsonObject properties = commandSchema.createNestedObject("properties");
@@ -168,7 +168,7 @@ void _mqttConnected()
   _mqtt.publishAdopt(_api.getAdopt(json.as<JsonVariant>()));
 
   // Log the fact we are now connected
-  Serial.println("[ra32] mqtt connected");
+  Serial.println("[wt32] mqtt connected");
 }
 
 void _mqttDisconnected(int state)
@@ -178,31 +178,31 @@ void _mqttDisconnected(int state)
   switch (state)
   {
   case MQTT_CONNECTION_TIMEOUT:
-    Serial.println(F("[ra32] mqtt connection timeout"));
+    Serial.println(F("[wt32] mqtt connection timeout"));
     break;
   case MQTT_CONNECTION_LOST:
-    Serial.println(F("[ra32] mqtt connection lost"));
+    Serial.println(F("[wt32] mqtt connection lost"));
     break;
   case MQTT_CONNECT_FAILED:
-    Serial.println(F("[ra32] mqtt connect failed"));
+    Serial.println(F("[wt32] mqtt connect failed"));
     break;
   case MQTT_DISCONNECTED:
-    Serial.println(F("[ra32] mqtt disconnected"));
+    Serial.println(F("[wt32] mqtt disconnected"));
     break;
   case MQTT_CONNECT_BAD_PROTOCOL:
-    Serial.println(F("[ra32] mqtt bad protocol"));
+    Serial.println(F("[wt32] mqtt bad protocol"));
     break;
   case MQTT_CONNECT_BAD_CLIENT_ID:
-    Serial.println(F("[ra32] mqtt bad client id"));
+    Serial.println(F("[wt32] mqtt bad client id"));
     break;
   case MQTT_CONNECT_UNAVAILABLE:
-    Serial.println(F("[ra32] mqtt unavailable"));
+    Serial.println(F("[wt32] mqtt unavailable"));
     break;
   case MQTT_CONNECT_BAD_CREDENTIALS:
-    Serial.println(F("[ra32] mqtt bad credentials"));
+    Serial.println(F("[wt32] mqtt bad credentials"));
     break;
   case MQTT_CONNECT_UNAUTHORIZED:
-    Serial.println(F("[ra32] mqtt unauthorised"));
+    Serial.println(F("[wt32] mqtt unauthorised"));
     break;
   }
 }
@@ -238,30 +238,21 @@ void _mqttCallback(char *topic, byte *payload, int length)
   switch (state)
   {
   case MQTT_RECEIVE_ZERO_LENGTH:
-    Serial.println(F("[ra32] empty mqtt payload received"));
+    Serial.println(F("[wt32] empty mqtt payload received"));
     break;
   case MQTT_RECEIVE_JSON_ERROR:
-    Serial.println(F("[ra32] failed to deserialise mqtt json payload"));
+    Serial.println(F("[wt32] failed to deserialise mqtt json payload"));
     break;
   case MQTT_RECEIVE_NO_CONFIG_HANDLER:
-    Serial.println(F("[ra32] no mqtt config handler"));
+    Serial.println(F("[wt32] no mqtt config handler"));
     break;
   case MQTT_RECEIVE_NO_COMMAND_HANDLER:
-    Serial.println(F("[ra32] no mqtt command handler"));
+    Serial.println(F("[wt32] no mqtt command handler"));
     break;
   }
 }
 
 /* Main program */
-OXRS_WT32::OXRS_WT32(const char *fwName, const char *fwShortName, const char *fwMaker, const char *fwVersion, const uint8_t *fwLogo)
-{
-  _fwName = fwName;
-  _fwShortName = fwShortName;
-  _fwMaker = fwMaker;
-  _fwVersion = fwVersion;
-  _fwLogo = fwLogo;
-}
-
 void OXRS_WT32::setMqttBroker(const char *broker, uint16_t port)
 {
   _mqtt.setBroker(broker, port);
@@ -379,7 +370,7 @@ void OXRS_WT32::_initialiseEthernet(byte *mac)
   // Display the MAC address on serial
   char mac_display[18];
   sprintf_P(mac_display, PSTR("%02X:%02X:%02X:%02X:%02X:%02X"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  Serial.print(F("[ra32] mac address: "));
+  Serial.print(F("[wt32] mac address: "));
   Serial.println(mac_display);
 
   // Initialise ethernet library
@@ -395,7 +386,7 @@ void OXRS_WT32::_initialiseEthernet(byte *mac)
   delay(350);
 
   // Get an IP address via DHCP and display on serial
-  Serial.print(F("[ra32] ip address: "));
+  Serial.print(F("[wt32] ip address: "));
   if (Ethernet.begin(mac, DHCP_TIMEOUT_MS, DHCP_RESPONSE_TIMEOUT_MS))
   {
     Serial.println(Ethernet.localIP());
@@ -429,7 +420,7 @@ void OXRS_WT32::_initialiseWifi(byte *mac)
 
   // Display MAC/IP addresses on serial
   sprintf_P(mac_display, PSTR("%02X:%02X:%02X:%02X:%02X:%02X"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  Serial.print(F("[ra32] wifi mac address: "));
+  Serial.print(F("[wt32] wifi mac address: "));
   Serial.println(mac_display);
 }
 /**
@@ -441,11 +432,11 @@ WiFi.macAddress(mac);
 // Display the MAC address on serial
 char mac_display[18];
 sprintf_P(mac_display, PSTR("%02X:%02X:%02X:%02X:%02X:%02X"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-Serial.print(F("[ra32] wifi mac address: "));
+Serial.print(F("[wt32] wifi mac address: "));
 Serial.println(mac_display);
 
 // Get an IP address via DHCP and display on serial
-Serial.print(F("[ra32] wifi ip address: "));
+Serial.print(F("[wt32] wifi ip address: "));
 if (WiFi.begin(WIFI_SSID, WIFI_PASSW))
 {
   Serial.println(WiFi.localIP());
@@ -550,7 +541,7 @@ void OXRS_WT32::getMACaddressTxt(char *buffer)
   sprintf(buffer, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
 
-void OXRS_WT32::getMQTTtopicTxT(char *buffer)
+void OXRS_WT32::getMQTTtopicTxt(char *buffer)
 {
   char topic[64];
   if (!_mqtt.connected())
@@ -565,10 +556,13 @@ void OXRS_WT32::getMQTTtopicTxT(char *buffer)
   }
 }
 
-bool OXRS_WT32::getConnected(void)
+connectionState_t OXRS_WT32::getConnectionState(void)
 {
-  bool connected = false;
-  if (_mqtt.connected() && _isNetworkConnected())
-    connected = true;
-  return connected;
+  if (_mqtt.connected())
+    return CONNECTED_MQTT;
+    
+  if (_isNetworkConnected())
+    return CONNECTED_IP;
+
+  return CONNECTED_NONE;
 }
