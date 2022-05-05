@@ -108,9 +108,14 @@ void classScreen::showConnectionStatus(bool connected)
   }
 }
 
-void classScreen::adEventHandler(lv_event_cb_t callBack)
+void classScreen::adWipeEventHandler(lv_event_cb_t callBack)
 {
   //    lv_obj_set_gesture_parent(_btnFooter, false);
   lv_obj_clear_flag(_btnFooter, LV_OBJ_FLAG_GESTURE_BUBBLE);
   lv_obj_add_event_cb(_btnFooter, callBack, LV_EVENT_GESTURE, this);
+}
+
+void classScreen::adScreenEventHandler(lv_event_cb_t callBack)
+{
+  lv_obj_add_event_cb(screen, callBack, LV_EVENT_ALL, this);
 }

@@ -123,8 +123,8 @@ void my_print(const char *buf)
 }
 #endif
 
-// publish witk MQTT
-// {""screen":1, "tile":1, "type":"button", "event":"single" , "state":"on"}
+// publish with MQTT
+// {"screen":1, "tile":1, "type":"button", "event":"single" , "state":"on"}
 void publishTileEvent(int screen, int tile, bool state)
 {
   StaticJsonDocument<128> json;
@@ -134,6 +134,19 @@ void publishTileEvent(int screen, int tile, bool state)
   json["event"] = "single";
   state == true ? json["state"] = "on" : json["state"] = "off";
 
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
+// publish with MQTT
+// {"screen":1, "type":"screen", "event":"change" , "state":"unloaded"}
+void publishScreenEvent(int screen, const char *state)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = screen;
+  json["type"] = "screen";
+  json["event"] = "change";
+  json["state"] = state;
+ 
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
@@ -356,6 +369,27 @@ static void wipeEventHandler(lv_event_t *e)
       lv_disp_load_scr(screens[screen - 1].screen);
     }
     break;
+  }
+}
+
+// screen event handler
+// detects unload and load
+void screenEventHandler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  if (code == LV_EVENT_SCREEN_UNLOAD_START)
+  {
+    classScreen *sPtr = (classScreen *)lv_event_get_user_data(e);
+    int screen = sPtr->getScreenNumber();
+    printf("Screen UNLOAD Event received: Screen : %d\n", sPtr->getScreenNumber());
+    publishScreenEvent(screen + 1, "unloaded");
+  }
+  if (code == LV_EVENT_SCREEN_LOADED)
+  {
+    classScreen *sPtr = (classScreen *)lv_event_get_user_data(e);
+    int screen = sPtr->getScreenNumber();
+    printf("Screen LOAD Event received: Screen : %d\n", sPtr->getScreenNumber());
+    publishScreenEvent(screen + 1, "loaded");
   }
 }
 
@@ -933,7 +967,8 @@ void ui_init(void)
     screens[i] = classScreen(i, 1);
     screens[i].createHomeButton(footerButtonEventHandler, imgHome);
     screens[i].createSettingsButton(footerButtonEventHandler, imgSettings);
-    screens[i].adEventHandler(wipeEventHandler);
+    screens[i].adWipeEventHandler(wipeEventHandler);
+    screens[i].adScreenEventHandler(screenEventHandler);
   }
   // setup Settings Screen as screen[SCREEN_SETTINGS]
   screens[SCREEN_SETTINGS] = classScreen(SCREEN_SETTINGS, 0);
@@ -941,7 +976,8 @@ void ui_init(void)
   screenSettings.addEventHandler(backLightSliderEventHandler);
   screens[SCREEN_SETTINGS].createHomeButton(footerButtonEventHandler, imgHome);
   screens[SCREEN_SETTINGS].setLabel("Settings");
-  screens[SCREEN_SETTINGS].adEventHandler(wipeEventHandler);
+  screens[SCREEN_SETTINGS].adWipeEventHandler(wipeEventHandler);
+  screens[SCREEN_SETTINGS].adScreenEventHandler(screenEventHandler);
   updateInfoText();
 
   // show HomeScreen

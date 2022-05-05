@@ -24,5 +24,6 @@ public:
   void createHomeButton(lv_event_cb_t callBack, const void *img);
   void createSettingsButton(lv_event_cb_t callBack, const void *img);
   void showConnectionStatus(bool connected);
-  void adEventHandler(lv_event_cb_t callBack);
+  void adWipeEventHandler(lv_event_cb_t callBack);
+  void adScreenEventHandler(lv_event_cb_t callBack);
 };
