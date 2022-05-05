@@ -12,11 +12,6 @@
   Copyright 2019-2022 SuperHouse Automation Pty Ltd
 */
 
-/*--------------------------- Firmware -----------------------------------*/
-#define FW_NAME "OXRS-AC-POETouchScreen-ESP32-FW"
-#define FW_SHORT_NAME "POE Touch Screen"
-#define FW_MAKER "Austin's Creations"
-#define FW_VERSION "DEV-0.1.9"
 /*--------------------------- Defines -----------------------------------*/
 // LCD backlight control
 // TFT_BL GPIO pin defined in user_setup.h of tft_eSPI
@@ -87,12 +82,12 @@ const void *imgSplash = &splash;
 const void *imgOnOff = &ios_onoff_60;
 
 int _act_BackLight;
-bool _connectionStatus = false;
+connectionState_t _connectionState = CONNECTED_NONE;
 uint32_t _noActivityTimeOut = 0L;
 
 
-    // holds all screen objects
-    classScreen screens[SCREEN_ALL_MAX];
+// holds all screen objects
+classScreen screens[SCREEN_ALL_MAX];
 
 // tileVault holds all tiles
 classTileList tileVault = classTileList();
@@ -102,7 +97,7 @@ classScreenSettings screenSettings = classScreenSettings();
 
 /*--------------------------- Global Objects -----------------------------*/
 // WT32 handler
-OXRS_WT32 wt32(FW_NAME, FW_SHORT_NAME, FW_MAKER, FW_VERSION, NULL);
+OXRS_WT32 wt32;
 
 /*--------------------------- screen / lvgl relevant  -----------------------------*/
 
@@ -290,38 +285,38 @@ void updateInfoText(void)
 
   lv_obj_t *_infoTextArea = screenSettings.getInfoPanel();
 
-  sprintf(buffer, "%s\n", FW_NAME);
+  sprintf(buffer, "Name:\t%s\n", STRINGIFY(FW_NAME));
   lv_textarea_set_text(_infoTextArea, buffer);
-  sprintf(buffer, "%s\n", FW_MAKER);
+  sprintf(buffer, "Maker:\t%s\n", STRINGIFY(FW_MAKER));
   lv_textarea_add_text(_infoTextArea, buffer);
-  sprintf(buffer, "Version :  %s\n", FW_VERSION);
+  sprintf(buffer, "Version:\t%s\n", STRINGIFY(FW_VERSION));
   lv_textarea_add_text(_infoTextArea, buffer);
   lv_textarea_add_text(_infoTextArea, "\n");
 
   wt32.getMACaddressTxt(buffer2);
-  sprintf(buffer, "MAC :     %s\n", buffer2);
+  sprintf(buffer, "MAC:\t%s\n", buffer2);
   lv_textarea_add_text(_infoTextArea, buffer);
 
   wt32.getIPaddressTxt(buffer2);
-  sprintf(buffer, "IP :          %s\n", buffer2);
+  sprintf(buffer, "IP:\t%s\n", buffer2);
   lv_textarea_add_text(_infoTextArea, buffer);
 
-  wt32.getMQTTtopicTxT(buffer2);
-  sprintf(buffer, "MQTT :   %s\n", buffer2);
+  wt32.getMQTTtopicTxt(buffer2);
+  sprintf(buffer, "MQTT:\t%s\n", buffer2);
   lv_textarea_add_text(_infoTextArea, buffer);
 }
 
 // check for changes in IP/MQTT connection and update warning sign in footer
 void updateConnectionStatus(void)
 {
-  bool connected = wt32.getConnected();
-  if (_connectionStatus != connected)
+  connectionState_t connectionState = wt32.getConnectionState();
+  if (_connectionState != connectionState)
   {
-    _connectionStatus = connected;
+    _connectionState = connectionState;
     // update footers in all screens
     for (int screen = 0; screen < SCREEN_ALL_MAX; screen++)
     {
-      screens[screen].showConnectionStatus(_connectionStatus);
+      screens[screen].showConnectionStatus(_connectionState == CONNECTED_MQTT);
     }
     // update info text to reflect actual status
     updateInfoText();
@@ -958,17 +953,10 @@ void ui_init(void)
 */
 void setup()
 {
-  // Startup logging to serial
+  // Start serial and let settle
   Serial.begin(SERIAL_BAUD_RATE);
-  Serial.println();
-  Serial.println(F("========================================"));
-  Serial.print(F("FIRMWARE: "));
-  Serial.println(FW_NAME);
-  Serial.print(F("MAKER:    "));
-  Serial.println(FW_MAKER);
-  Serial.print(F("VERSION:  "));
-  Serial.println(FW_VERSION);
-  Serial.println(F("========================================"));
+  delay(1000);
+  Serial.println(F("[wt32] starting up..."));
 
   // set up for backlight dimming (PWM)
   ledcSetup(BL_PWM_CHANNEL, BL_PWM_FREQ, BL_PWM_RESOLUTION);
