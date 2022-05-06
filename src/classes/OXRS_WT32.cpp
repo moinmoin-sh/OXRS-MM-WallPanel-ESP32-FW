@@ -315,10 +315,10 @@ void OXRS_WT32::loop(void)
     // Handle any REST API requests
 #ifndef WIFI_MODE
     EthernetClient client = _server.available();
-    _api.checkEthernet(&client);
+    _api.loop(&client);
 #else
     WiFiClient client = _server.available();
-    _api.checkWifi(&client);
+    _api.loop(&client);
 #endif
   }
 }
