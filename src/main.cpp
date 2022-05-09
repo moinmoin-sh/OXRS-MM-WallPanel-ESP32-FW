@@ -308,15 +308,15 @@ void updateInfoText(void)
   lv_textarea_add_text(_infoTextArea, buffer);
   lv_textarea_add_text(_infoTextArea, "\n");
 
-  wt32.getMACaddressTxt(buffer2);
+  wt32.getMACAddressTxt(buffer2);
   sprintf(buffer, "MAC:\t%s\n", buffer2);
   lv_textarea_add_text(_infoTextArea, buffer);
 
-  wt32.getIPaddressTxt(buffer2);
+  wt32.getIPAddressTxt(buffer2);
   sprintf(buffer, "IP:\t%s\n", buffer2);
   lv_textarea_add_text(_infoTextArea, buffer);
 
-  wt32.getMQTTtopicTxt(buffer2);
+  wt32.getMQTTTopicTxt(buffer2);
   sprintf(buffer, "MQTT:\t%s\n", buffer2);
   lv_textarea_add_text(_infoTextArea, buffer);
 }
@@ -576,49 +576,17 @@ void createInputTypeEnum(JsonObject parent)
 
 int parseInputType(const char *inputType)
 {
-  if (strcmp(inputType, "blind") == 0)
-  {
-    return BLIND;
-  }
-  if (strcmp(inputType, "coffee") == 0)
-  {
-    return COFFEE;
-  }
-  if (strcmp(inputType, "door") == 0)
-  {
-    return DOOR;
-  }
-  if (strcmp(inputType, "light") == 0)
-  {
-    return LIGHT;
-  }
-  if (strcmp(inputType, "number") == 0)
-  {
-    return NUMBER;
-  };
-  if (strcmp(inputType, "onoff") == 0)
-  {
-    return ONOFF;
-  };
-  if (strcmp(inputType, "room") == 0)
-  {
-    return ROOM;
-  }
-  if (strcmp(inputType, "speaker") == 0)
-  {
-    return SPEAKER;
-  }
-  if (strcmp(inputType, "thermometer") == 0)
-  {
-    return THERMOMETER;
-  }
-  if (strcmp(inputType, "window") == 0)
-  {
-    return WINDOW;
-  }
+  if (strcmp(inputType, "blind") == 0)        { return BLIND; }
+  if (strcmp(inputType, "coffee") == 0)       { return COFFEE; }
+  if (strcmp(inputType, "door") == 0)         { return DOOR; }
+  if (strcmp(inputType, "light") == 0)        { return LIGHT; }
+  if (strcmp(inputType, "number") == 0)       { return NUMBER; };
+  if (strcmp(inputType, "onoff") == 0)        { return ONOFF; };
+  if (strcmp(inputType, "room") == 0)         { return ROOM; }
+  if (strcmp(inputType, "speaker") == 0)      { return SPEAKER; }
+  if (strcmp(inputType, "thermometer") == 0)  { return THERMOMETER; }
+  if (strcmp(inputType, "window") == 0)       { return WINDOW; }
 
-  //  wt32.println(F("[smon] invalid input type"));
-  //  return INVALID_INPUT_TYPE;
   return NONE;
 }
 
@@ -657,17 +625,20 @@ void jsonTilesConfig(int screen, JsonVariant json)
 {
   if ((screen < 0) || (screen > SCREEN_GRID_MAX))
   {
-    Serial.println(F("[wpan] invalid screen"));
+    wt32.print(F("[wpan] invalid screen: "));
+    wt32.println(screen);
     return;
   }
+
   int tile = json["tile"].as<int>();
   if ((tile < 1) || (tile > 6))
   {
-    Serial.println(F("[wpan] invalid tile"));
+    wt32.print(F("[wpan] invalid tile: "));
+    wt32.println(tile);
     return;
   }
-  tile -= 1;
 
+  tile -= 1;
   createTile(parseInputType(json["type"]), screen, tile, json["label"], json["noClick"], json["link"]);
 }
 
@@ -846,49 +817,61 @@ void jsonSetStateCommand(JsonVariant json)
   int screen = json["screen"].as<int>();
   if ((screen < 1) || (screen > SCREEN_GRID_MAX))
   {
-    Serial.println(F("[wpan] invalid screen"));
+    wt32.print(F("[wpan] invalid screen: "));
+    wt32.println(screen);
     return;
   }
+
   int tile = json["tile"].as<int>();
   if ((tile < 1) || (tile > 6))
   {
-    Serial.println(F("[wpan] invalid tile"));
+    wt32.print(F("[wpan] invalid tile: "));
+    wt32.println(tile);
     return;
   }
+
   tile -= 1;
   screen -= 1;
 
   classTile *_tile = tileVault.get(screen, tile);
   if (!_tile)
   {
-    Serial.println(F("[wpan] addressed screen/tile not found!"));
+    wt32.print(F("[wpan] screen/tile not found: "));
+    wt32.print(screen);
+    wt32.print(F("/"));
+    wt32.println(tile);
     return;
   }
 
   if (json.containsKey("state"))
   {
-    if (strcmp(json["state"], "on") == 0)
+    const char * state = json["state"];
+    if (strcmp(state, "on") == 0)
     {
       _tile->setState(true);
     }
-    else if (strcmp(json["state"], "off") == 0)
+    else if (strcmp(state, "off") == 0)
     {
       _tile->setState(false);
     }
     else
     {
-      Serial.println(F("[wpan] invalid state"));
+      wt32.print(F("[wpan] invalid state: "));
+      wt32.println(state);
     }
   }
+
   if (json.containsKey("sublabel"))
   {
     _tile->setSubLabel(json["sublabel"]);
   }
+  
   if (json.containsKey("color"))
   {
     int red = json["color"][0];
     int green = json["color"][1];
     int blue = json["color"][2];
+
     // if all zero reset to colorOn
     if ((red + green + blue) == 0)
     {
@@ -899,6 +882,7 @@ void jsonSetStateCommand(JsonVariant json)
       _tile->setColor(red, green, blue);
     }
   }
+  
   if (json.containsKey("number") || json.containsKey("units"))
   {
     _tile->setNumber(json["number"], json["units"]);
@@ -930,8 +914,10 @@ void jsonCommand(JsonVariant json)
   if (json.containsKey("screen"))
   {
     int screen = json["screen"]["select"].as<int>();
-    Serial.print(F("[wpan] screen select : "));
-    Serial.println(screen);
+
+    wt32.print(F("[wpan] screen select: "));
+    wt32.println(screen);
+
     selectScreen(screen);
   }
 }

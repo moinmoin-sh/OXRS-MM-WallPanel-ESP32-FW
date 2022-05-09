@@ -23,7 +23,7 @@
 
 enum connectionState_t { CONNECTED_NONE, CONNECTED_IP, CONNECTED_MQTT };
 
-class OXRS_WT32
+class OXRS_WT32 : public Print
 {
 public:
   // These are only needed if performing manual configuration in your sketch, otherwise
@@ -45,20 +45,20 @@ public:
   boolean publishStatus(JsonVariant json);
   boolean publishTelemetry(JsonVariant json);
 
-  void getIPaddressTxt(char *buffer);
-  void getMACaddressTxt(char *buffer);
-  void getMQTTtopicTxt(char *buffer);
+  void getIPAddressTxt(char *buffer);
+  void getMACAddressTxt(char *buffer);
+  void getMQTTTopicTxt(char *buffer);
 
   connectionState_t getConnectionState(void);
 
   void restartApi(void);
 
+  // Implement Print.h wrapper
+  virtual size_t write(uint8_t);
+  using Print::write;
+
 private:
-#ifndef WIFI_MODE
-  void _initialiseEthernet(byte *mac);
-#else
-  void _initialiseWifi(byte *mac);
-#endif
+  void _initialiseNetwork(byte *mac);
   void _initialiseMqtt(byte *mac);
   void _initialiseRestApi(void);
 
