@@ -205,6 +205,11 @@ bool classTile::getState(void)
   return _state;
 }
 
+char *classTile::getLabel(void)
+{
+  return lv_label_get_text(_label);
+}
+
 void classTile::addEventHandler(lv_event_cb_t callBack)
 {
   // add click detecttion

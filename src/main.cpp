@@ -27,12 +27,11 @@
 
 /*--------------------------- Libraries ----------------------------------*/
 #include <globalDefines.h>
-//#include <Preferences.h>
 #include <classScreen.h>
 #include <classTile.h>
 #include <classTileList.h>
-//#include <classScreenStack.h>
 #include <classScreenSettings.h>
+#include <classLevel.h>
 
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -97,6 +96,9 @@ classTileList tileVault = classTileList();
 // the Settings Screen
 classScreenSettings screenSettings = classScreenSettings();
 
+// level control overlay
+classLevel levelControl = classLevel();
+
 /*--------------------------- Global Objects -----------------------------*/
 // WT32 handler
 OXRS_WT32 wt32;
@@ -152,6 +154,19 @@ void publishScreenEvent(int screen, const char *state)
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
+// publish with MQTT
+// {"screen":1, "tile":1, "type":"level", "event":"change" , "state":50}
+void publishLevelEvent(int screen, int tile, char * event, int value)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = screen;
+  json["tile"] = tile;
+  json["type"] = "level";
+  json["event"] = event;
+  json["state"] = value;
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
 //{"backlight:" 50}
 void publishBackLightTelemetry(void)
 {
@@ -395,6 +410,38 @@ void screenEventHandler(lv_event_t *e)
   }
 }
 
+// Up / Down Button Event Handler
+static void upDownEventHandler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  if ((code == LV_EVENT_SHORT_CLICKED) || (code == LV_EVENT_LONG_PRESSED) || (code == LV_EVENT_LONG_PRESSED_REPEAT))
+  {
+    // short increments 1; long increments 5
+    int inc = 0;
+    if (code == LV_EVENT_SHORT_CLICKED)
+      inc = 1;
+    else
+      inc = 5;
+    // if (button <> btnUp) -> make increment negative
+    lv_obj_t *btn = lv_event_get_target(e);
+    classLevel *vPtr = (classLevel *)lv_event_get_user_data(e);
+    if (btn != vPtr->getBtnUp())
+      inc *= -1;
+    // calc new value and limit to 0...100
+    int level = levelControl.getValue();
+    level += inc;
+    if (level > 100) level  = 100;
+    if (level < 0)    level = 0;
+    levelControl.setValue(level);
+    // send event
+    // get id of calling tile
+    int id = levelControl.getTile()->getId();
+    int screen = id / 100;
+    int tile = id % 100;
+    publishLevelEvent(screen + 1, tile + 1, "change", level);
+  }
+}
+
 // Tile Event Handler
 static void tileEventHandler(lv_event_t *e)
 {
@@ -423,8 +470,20 @@ static void tileEventHandler(lv_event_t *e)
 
   if (code == LV_EVENT_LONG_PRESSED)
   {
-    // use internal and call pop-up
+    classTile *tPtr = (classTile *)lv_event_get_user_data(e);
+    if ((tPtr->getType() == LIGHT) || (tPtr->getType() == SPEAKER))
+    {
+      // use internal and call pop-up
+      levelControl = classLevel(tPtr);
+      levelControl.adUpDownEventHandler(upDownEventHandler);
+      // send event : overlay levelcontrol openend -> request actual level
+      int id = tPtr->getId();
+      int screen = id / 100;
+      int tile = id % 100;
+      publishLevelEvent(screen + 1, tile + 1, "request", 0);
+    }
   }
+
 }
 
 // screen footer button Event handler
@@ -896,6 +955,12 @@ void jsonCommand(JsonVariant json)
     int blValue = json["backlight"]["brightness"].as<int>();
     _setBackLight(blValue, true);
     setBackLightSliderValue(blValue);
+  }
+
+  if (json.containsKey("setlevel"))
+  {
+    int level = json["setlevel"]["level"].as<int>();
+    levelControl.setValue(level);
   }
 
   if (json.containsKey("message"))

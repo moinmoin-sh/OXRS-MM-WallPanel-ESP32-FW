@@ -43,5 +43,6 @@ public:
   int getId(void);
   int getType(void);
   bool getState(void);
+  char *getLabel(void);
   void addEventHandler(lv_event_cb_t callBack);
 };
