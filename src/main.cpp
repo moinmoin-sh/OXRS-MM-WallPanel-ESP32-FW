@@ -27,11 +27,10 @@
 
 /*--------------------------- Libraries ----------------------------------*/
 #include <globalDefines.h>
-//#include <Preferences.h>
-#include <classScreen.h>
 #include <classTile.h>
 #include <classTileList.h>
-//#include <classScreenStack.h>
+#include <classScreen.h>
+#include <classScreenList.h>
 #include <classScreenSettings.h>
 
 #include <TFT_eSPI.h>
@@ -87,9 +86,16 @@ int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
 uint32_t _noActivityTimeOut = 0L;
 
+#define DEFAULT_COLOR_ON_RED   91
+#define DEFAULT_COLOR_ON_GREEN 190
+#define DEFAULT_COLOR_ON_BLUE  91
+lv_color_t colorOn;
+lv_color_t colorBg;
 
-// holds all screen objects
-classScreen screens[SCREEN_ALL_MAX];
+/*--------------------------- Global Objects -----------------------------*/
+
+// screenVault holds all screens
+classScreenList screenVault = classScreenList();
 
 // tileVault holds all tiles
 classTileList tileVault = classTileList();
@@ -97,7 +103,6 @@ classTileList tileVault = classTileList();
 // the Settings Screen
 classScreenSettings screenSettings = classScreenSettings();
 
-/*--------------------------- Global Objects -----------------------------*/
 // WT32 handler
 OXRS_WT32 wt32;
 
@@ -125,13 +130,15 @@ void my_print(const char *buf)
 }
 #endif
 
-// publish with MQTT
+/*--------------------------- publish with MQTT  -----------------------------*/
+
+// publish Tile Event
 // {"screen":1, "tile":1, "type":"button", "event":"single" , "state":"on"}
-void publishTileEvent(int screen, int tile, bool state)
+void publishTileEvent(int screenIdx, int tileIdx, bool state)
 {
   StaticJsonDocument<128> json;
-  json["screen"] = screen;
-  json["tile"] = tile;
+  json["screen"] = screenIdx;
+  json["tile"] = tileIdx;
   json["type"] = "button";
   json["event"] = "single";
   state == true ? json["state"] = "on" : json["state"] = "off";
@@ -139,12 +146,12 @@ void publishTileEvent(int screen, int tile, bool state)
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
-// publish with MQTT
+// publish Screen Event
 // {"screen":1, "type":"screen", "event":"change" , "state":"unloaded"}
-void publishScreenEvent(int screen, const char *state)
+void publishScreenEvent(int screenIdx, const char *state)
 {
   StaticJsonDocument<128> json;
-  json["screen"] = screen;
+  json["screen"] = screenIdx;
   json["type"] = "screen";
   json["event"] = "change";
   json["state"] = state;
@@ -152,6 +159,7 @@ void publishScreenEvent(int screen, const char *state)
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
+// publish local Backlight change
 //{"backlight:" 50}
 void publishBackLightTelemetry(void)
 {
@@ -176,6 +184,7 @@ void _setBackLight(int val, bool sendTelemetry)
     publishBackLightTelemetry();
 }
 
+// update the slider
 void setBackLightSliderValue(int value)
 {
   screenSettings.setSlider(value);
@@ -238,22 +247,17 @@ void checkNoAvtivity(void)
   if (_noActivityTimeOut == 0)
     return;
   // Screen is HomeScreen
-  if (lv_scr_act() == screens[SCREEN_HOME].screen)
+  if (lv_scr_act() == screenVault.get(SCREEN_HOME)->screen)
     return;
   // time elapsed, jump to HomeScreen
   if (lv_disp_get_inactive_time(NULL) > _noActivityTimeOut)
-    lv_disp_load_scr(screens[SCREEN_HOME].screen);
+    screenVault.show(SCREEN_HOME);
 }
 
 /*
  * ui helper functions
  */
 
-int colorConfigRed = 91;
-int colorConfigGreen = 190;
-int colorConfigBlue = 91;
-lv_color_t colorOn;
-lv_color_t colorBg;
 
 void _showMsgBox(const char *title, const char *text)
 {
@@ -271,7 +275,7 @@ void defaultOnColorConfig(int red, int green, int blue)
   // all zero is defined as unset, so set default
   if ((red + green + blue) == 0)
   {
-    colorOn = lv_color_make(colorConfigRed, colorConfigGreen, colorConfigBlue);
+    colorOn = lv_color_make(DEFAULT_COLOR_ON_RED, DEFAULT_COLOR_ON_GREEN, DEFAULT_COLOR_ON_BLUE);
   }
   else
   {
@@ -329,47 +333,37 @@ void updateConnectionStatus(void)
   {
     _connectionState = connectionState;
     // update footers in all screens
-    for (int screen = 0; screen < SCREEN_ALL_MAX; screen++)
+    classScreen *sPtr = screenVault.getStart();
+    do
     {
-      screens[screen].showConnectionStatus(_connectionState == CONNECTED_MQTT);
-    }
+      sPtr->showConnectionStatus(_connectionState == CONNECTED_MQTT);
+    } while ((sPtr = screenVault.getNext(sPtr->screenIdx)));
+
     // update info text to reflect actual status
     updateInfoText();
   }
 }
 
-/*--------------------------- Program ------------------------------------*/
-
-void selectScreen(int screen)
+// screen selection via mqtt
+void selectScreen(int screenIdx)
 {
-  screen--;
-  if ((screen >= 0) && (screen < SCREEN_ALL_MAX))
-  {
-    lv_disp_load_scr(screens[screen].screen);
-  }
+  screenVault.show(screenIdx);
 }
+
+/*--------------------------- Event Handler ------------------------------------*/
 
 // WipeEvent Handler
 static void wipeEventHandler(lv_event_t *e)
 {
-  classScreen *sPtr = (classScreen *)lv_event_get_user_data(e);
-  int screen = sPtr->getScreenNumber();
   lv_dir_t dir = lv_indev_get_gesture_dir(myInputDevice);
-  Serial.println(screen);
-
+ 
   switch (dir)
   {
   case LV_DIR_LEFT:
-    if (screen < (SCREEN_ALL_MAX - 1))
-    {
-      lv_disp_load_scr(screens[screen + 1].screen);
-    }
+    screenVault.showNext(lv_scr_act());
     break;
   case LV_DIR_RIGHT:
-    if (screen > 0)
-    {
-      lv_disp_load_scr(screens[screen - 1].screen);
-    }
+    screenVault.showPrev(lv_scr_act());
     break;
   }
 }
@@ -382,16 +376,16 @@ void screenEventHandler(lv_event_t *e)
   if (code == LV_EVENT_SCREEN_UNLOAD_START)
   {
     classScreen *sPtr = (classScreen *)lv_event_get_user_data(e);
-    int screen = sPtr->getScreenNumber();
-    printf("Screen UNLOAD Event received: Screen : %d\n", sPtr->getScreenNumber());
-    publishScreenEvent(screen + 1, "unloaded");
+    int screenIdx = sPtr->screenIdx;
+    printf("Screen UNLOAD Event received: Screen : %d\n", screenIdx);
+    publishScreenEvent(screenIdx, "unloaded");
   }
   if (code == LV_EVENT_SCREEN_LOADED)
   {
     classScreen *sPtr = (classScreen *)lv_event_get_user_data(e);
-    int screen = sPtr->getScreenNumber();
-    printf("Screen LOAD Event received: Screen : %d\n", sPtr->getScreenNumber());
-    publishScreenEvent(screen + 1, "loaded");
+    int screenIdx = sPtr->screenIdx;
+    printf("Screen LOAD Event received: Screen : %d\n", screenIdx);
+    publishScreenEvent(screenIdx, "loaded");
   }
 }
 
@@ -404,20 +398,21 @@ static void tileEventHandler(lv_event_t *e)
   {
     // get tile* of clicked tile from USER_DATA
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
-    int screen = tPtr->id / 100;
-    int tile = tPtr->id % 100;
+    tileId_t tileId = tPtr->getId();
+    int screenIdx = tileId.idx.screen;
+    int tileIdx = tileId.idx.tile;
     int linkedScreen = tPtr->getLink();
     bool state = tPtr->getState();
-    printf("Click Event received: Screen : %d; Tile : %d; Link : %d; State : %d\n", screen, tile, linkedScreen, state);
+    printf("Click Event received: Screen : %d; Tile : %d; Link : %d; State : %d\n", screenIdx, tileIdx, linkedScreen, state);
     // button has link -> call linked screen
     if (linkedScreen > 0)
     {
-      lv_disp_load_scr(screens[linkedScreen].screen);
+      screenVault.show(linkedScreen);
     }
     //  publish click event
     else
     {
-      publishTileEvent(screen + 1, tile + 1, state);
+      publishTileEvent(screenIdx, tileIdx, state);
     }
   }
 
@@ -439,12 +434,12 @@ static void footerButtonEventHandler(lv_event_t *e)
     // left side clicked -> HomeButton
     if (ta->coords.x1 < 160)
     {
-      lv_disp_load_scr(screens[SCREEN_HOME].screen);
+      screenVault.show(SCREEN_HOME);
     }
     // right side clicked -> SettingsButton
     else
     {
-      lv_disp_load_scr(screens[SCREEN_SETTINGS].screen);
+      screenVault.show(SCREEN_SETTINGS);
     }
   }
 }
@@ -465,6 +460,22 @@ static void backLightSliderEventHandler(lv_event_t *e)
   {
     _setBackLight(lv_slider_get_value(slider), true);
   }
+}
+
+// create screen for tiles in screenVault if not exists
+void createScreen(int screenIdx)
+{
+  // exit if screenIdx exits
+  if (screenVault.exist(screenIdx))
+    return;
+  // create new screen with grid container
+  classScreen &ref = screenVault.add(screenIdx, 1);
+  ref.createHomeButton(footerButtonEventHandler, imgHome);
+  ref.createSettingsButton(footerButtonEventHandler, imgSettings);
+  ref.adWipeEventHandler(wipeEventHandler);
+  ref.adScreenEventHandler(screenEventHandler);
+  // sort screenIdx in ascending order
+  screenVault.sort();
 }
 
 /**
@@ -515,15 +526,12 @@ const void *getIconFromType(int tileType)
 
 /*
  * Create any tile on any screen
- * screen
- * tile
- * imgIcon
  */
-void createTile(int tileType, int screen, int tile, const char *label, bool noClick, int linkedScreen)
+void createTile(int tileType, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen)
 {
   const void *img;
   // exit if screen or tile out of range
-  if ((screen < 0) || (screen > (SCREEN_GRID_MAX - 1)) || (tile < 0) || (tile > 5))
+  if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END) || (tileIdx < TILE_START) || (tileIdx > TILE_END))
   {
     printf("Config error. screen or tile out of range\n");
     return;
@@ -533,22 +541,27 @@ void createTile(int tileType, int screen, int tile, const char *label, bool noCl
   if (tileType == NONE)
   {
   };
+
+  // create screen if not exist
+  createScreen(screenIdx);
+
   // delete icon reference if exist
-  tileVault.remove(screen, tile);
+  tileVault.remove(screenIdx, tileIdx);
 
   // set icon tileType dependent
   img = getIconFromType(tileType);
 
   // create new Tile
   classTile &ref = tileVault.add();
-  ref.begin(screens[screen].container, img, label);
-  ref.registerTile(screen, tile, tileType);
-  Serial.println(tileVault.size());
+  ref.begin(screenVault.get(screenIdx)->container, img, label);
+  ref.registerTile(screenIdx, tileIdx, tileType);
 
   // handle icons depending on tileType capabilities
   if (linkedScreen)
   {
-    ref.setLink(linkedScreen - 1);
+    ref.setLink(linkedScreen);
+    // create screen if not exist
+    createScreen(linkedScreen);
   }
 
   // set the event handler
@@ -558,6 +571,7 @@ void createTile(int tileType, int screen, int tile, const char *label, bool noCl
   }
 }
 
+// type list for config
 void createInputTypeEnum(JsonObject parent)
 {
   JsonArray typeEnum = parent.createNestedArray("enum");
@@ -574,6 +588,7 @@ void createInputTypeEnum(JsonObject parent)
   typeEnum.add("window");
 }
 
+// decode type from input
 int parseInputType(const char *inputType)
 {
   if (strcmp(inputType, "blind") == 0)        { return BLIND; }
@@ -615,31 +630,32 @@ void jsonThemeColorConfig(JsonVariant json)
 
   // update all instances
   defaultThemeColorConfig(red, green, blue);
-  for (int screen = 0; screen < SCREEN_ALL_MAX; screen++)
+  classScreen *sPtr = screenVault.getStart();
+  do
   {
-    screens[screen].updateBgColor();
-  }
+    sPtr->updateBgColor();
+  } while ((sPtr = screenVault.getNext(sPtr->screenIdx)));
+
 }
 
-void jsonTilesConfig(int screen, JsonVariant json)
+void jsonTilesConfig(int screenIdx, JsonVariant json)
 {
-  if ((screen < 0) || (screen > SCREEN_GRID_MAX))
+  if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END))
   {
     wt32.print(F("[wpan] invalid screen: "));
-    wt32.println(screen);
+    wt32.println(screenIdx);
     return;
   }
 
-  int tile = json["tile"].as<int>();
-  if ((tile < 1) || (tile > 6))
+  int tileIdx = json["tile"].as<int>();
+  if ((tileIdx < TILE_START) || (tileIdx > TILE_END))
   {
     wt32.print(F("[wpan] invalid tile: "));
-    wt32.println(tile);
+    wt32.println(tileIdx);
     return;
   }
 
-  tile -= 1;
-  createTile(parseInputType(json["type"]), screen, tile, json["label"], json["noClick"], json["link"]);
+  createTile(parseInputType(json["type"]), screenIdx, tileIdx, json["label"], json["noClick"], json["link"]);
 }
 
 void jsonConfig(JsonVariant json)
@@ -662,14 +678,14 @@ void jsonConfig(JsonVariant json)
 
   if (json.containsKey("screens"))
   {
-    for (JsonVariant screen : json["screens"].as<JsonArray>())
+    for (JsonVariant screenJson : json["screens"].as<JsonArray>())
     {
-      int _screen = screen["screen"].as<int>();
-      _screen -= 1;
-      screens[_screen].setLabel(screen["label"]);
-      for (JsonVariant tile : screen["tiles"].as<JsonArray>())
+      int screenIdx = screenJson["screen"].as<int>();
+      createScreen(screenIdx);
+      screenVault.get(screenIdx)->setLabel(screenJson["label"]);
+      for (JsonVariant tileJson : screenJson["tiles"].as<JsonArray>())
       {
-        jsonTilesConfig(_screen, tile);
+        jsonTilesConfig(screenIdx, tileJson);
       }
     }
   }
@@ -691,8 +707,8 @@ void screenConfigSchema(JsonVariant json)
   JsonObject screen = properties2.createNestedObject("screen");
   screen["title"] = "screen";
   screen["type"] = "integer";
-  screen["minimum"] = 1;
-  screen["maximum"] = 7;
+  screen["minimum"] = SCREEN_START;
+  screen["maximum"] = SCREEN_END;
 
   JsonObject label2 = properties2.createNestedObject("label");
   label2["title"] = "Label";
@@ -712,8 +728,8 @@ void screenConfigSchema(JsonVariant json)
   JsonObject tile3 = properties3.createNestedObject("tile");
   tile3["title"] = "Tile";
   tile3["type"] = "integer";
-  tile3["minimum"] = 1;
-  tile3["maximum"] = 6;
+  tile3["minimum"] = TILE_START;
+  tile3["maximum"] = TILE_END;
 
   JsonObject type3 = properties3.createNestedObject("type");
   type3["title"] = "Type";
@@ -730,8 +746,8 @@ void screenConfigSchema(JsonVariant json)
   JsonObject link = properties3.createNestedObject("link");
   link["title"] = "Optional, select screen number if Tile links to new Screen.";
   link["type"] = "integer";
-  link["minimum"] = 1;
-  link["maximum"] = SCREEN_GRID_MAX;
+  link["minimum"] = SCREEN_START;
+  link["maximum"] = SCREEN_END;
 
   JsonArray required3 = items3.createNestedArray("required");
   required3.add("tile");
@@ -814,32 +830,29 @@ void setConfigSchema()
 
 void jsonSetStateCommand(JsonVariant json)
 {
-  int screen = json["screen"].as<int>();
-  if ((screen < 1) || (screen > SCREEN_GRID_MAX))
+  int screenIdx = json["screen"].as<int>();
+  if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END))
   {
     wt32.print(F("[wpan] invalid screen: "));
-    wt32.println(screen);
+    wt32.println(screenIdx);
     return;
   }
 
-  int tile = json["tile"].as<int>();
-  if ((tile < 1) || (tile > 6))
+  int tileIdx = json["tile"].as<int>();
+  if ((tileIdx < TILE_START) || (tileIdx > TILE_END))
   {
     wt32.print(F("[wpan] invalid tile: "));
-    wt32.println(tile);
+    wt32.println(tileIdx);
     return;
   }
 
-  tile -= 1;
-  screen -= 1;
-
-  classTile *_tile = tileVault.get(screen, tile);
-  if (!_tile)
+  classTile *tile = tileVault.get(screenIdx, tileIdx);
+  if (!tile)
   {
     wt32.print(F("[wpan] screen/tile not found: "));
-    wt32.print(screen);
+    wt32.print(screenIdx);
     wt32.print(F("/"));
-    wt32.println(tile);
+    wt32.println(tileIdx);
     return;
   }
 
@@ -848,11 +861,11 @@ void jsonSetStateCommand(JsonVariant json)
     const char * state = json["state"];
     if (strcmp(state, "on") == 0)
     {
-      _tile->setState(true);
+      tile->setState(true);
     }
     else if (strcmp(state, "off") == 0)
     {
-      _tile->setState(false);
+      tile->setState(false);
     }
     else
     {
@@ -863,7 +876,7 @@ void jsonSetStateCommand(JsonVariant json)
 
   if (json.containsKey("sublabel"))
   {
-    _tile->setSubLabel(json["sublabel"]);
+    tile->setSubLabel(json["sublabel"]);
   }
   
   if (json.containsKey("color"))
@@ -875,17 +888,17 @@ void jsonSetStateCommand(JsonVariant json)
     // if all zero reset to colorOn
     if ((red + green + blue) == 0)
     {
-      _tile->setColorToDefault();
+      tile->setColorToDefault();
     }
     else
     {
-      _tile->setColor(red, green, blue);
+      tile->setColor(red, green, blue);
     }
   }
   
   if (json.containsKey("number") || json.containsKey("units"))
   {
-    _tile->setNumber(json["number"], json["units"]);
+    tile->setNumber(json["number"], json["units"]);
   }
 }
 
@@ -913,12 +926,12 @@ void jsonCommand(JsonVariant json)
 
   if (json.containsKey("screen"))
   {
-    int screen = json["screen"]["select"].as<int>();
+    int screenIdx = json["screen"]["select"].as<int>();
 
     wt32.print(F("[wpan] screen select: "));
-    wt32.println(screen);
+    wt32.println(screenIdx);
 
-    selectScreen(screen);
+    selectScreen(screenIdx);
   }
 }
 
@@ -926,6 +939,7 @@ void jsonCommand(JsonVariant json)
   init and start LVGL pages
  */
 
+// define the defaults for lvgl objects
 static lv_style_t style_my_btn;
 
 static void new_theme_apply_cb(lv_theme_t *th, lv_obj_t *obj)
@@ -953,36 +967,31 @@ static void new_theme_init_and_set(void)
   lv_disp_set_theme(NULL, &th_new);
 }
 
+// initialize ui
 void ui_init(void)
 {
   new_theme_init_and_set();
-  // screens
-  for (int i = 0; i < SCREEN_GRID_MAX; i++)
-  {
-    // create screen (s)
-    screens[i] = classScreen(i, 1);
-    screens[i].createHomeButton(footerButtonEventHandler, imgHome);
-    screens[i].createSettingsButton(footerButtonEventHandler, imgSettings);
-    screens[i].adWipeEventHandler(wipeEventHandler);
-    screens[i].adScreenEventHandler(screenEventHandler);
-  }
+
+  // HomeScreen
+  createScreen(SCREEN_HOME);
+
   // setup Settings Screen as screen[SCREEN_SETTINGS]
-  screens[SCREEN_SETTINGS] = classScreen(SCREEN_SETTINGS, 0);
-  screenSettings = classScreenSettings(screens[SCREEN_SETTINGS].screen, imgAustin);
+  classScreen &ref = screenVault.add(SCREEN_SETTINGS, 0);
+  screenSettings = classScreenSettings(ref.screen, imgAustin);
   screenSettings.addEventHandler(backLightSliderEventHandler);
-  screens[SCREEN_SETTINGS].createHomeButton(footerButtonEventHandler, imgHome);
-  screens[SCREEN_SETTINGS].setLabel("Settings");
-  screens[SCREEN_SETTINGS].adWipeEventHandler(wipeEventHandler);
-  screens[SCREEN_SETTINGS].adScreenEventHandler(screenEventHandler);
+  ref.createHomeButton(footerButtonEventHandler, imgHome);
+  ref.adWipeEventHandler(wipeEventHandler);
+  ref.adScreenEventHandler(screenEventHandler);
+  ref.setLabel("Settings");
+
   updateInfoText();
 
   // show HomeScreen
-  lv_disp_load_scr(screens[SCREEN_HOME].screen);
+  screenVault.show(SCREEN_HOME);
 }
-
-/**
-  Setup
-*/
+  /**
+    Setup
+  */
 void setup()
 {
   // Start serial and let settle
@@ -1002,7 +1011,7 @@ void setup()
   Serial.println(LVGL_Arduino);
   Serial.println("I am LVGL_Arduino");
 #if LV_USE_LOG != 0
-  lv_log_register_print_cb(my_print); // register print function for debugging
+lv_log_register_print_cb(my_print); // register print function for debugging
 #endif
 
   // start tft library
@@ -1014,19 +1023,19 @@ void setup()
   ft6336u.begin();
   pinMode(39, INPUT);
 
+  // innitialize draw buffer
   lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
-
   // Initialize the display
   static lv_disp_drv_t disp_drv;
   lv_disp_drv_init(&disp_drv);
-  // Change the following line to your display resolution
+  // settings for display driver
   disp_drv.hor_res = screenWidth;
   disp_drv.ver_res = screenHeight;
   disp_drv.flush_cb = my_disp_flush;
   disp_drv.draw_buf = &draw_buf;
   lv_disp_drv_register(&disp_drv);
 
-  // Initialize the (dummy) input device driver
+  // Initialize the input device driver (touch panel)
   static lv_indev_drv_t indev_drv;
   lv_indev_drv_init(&indev_drv);
   indev_drv.type = LV_INDEV_TYPE_POINTER;

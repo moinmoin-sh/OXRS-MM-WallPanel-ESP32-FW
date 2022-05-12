@@ -18,9 +18,9 @@ extern lv_color_t colorBg;
 static lv_coord_t colDsc_2X3[] = {COL_SIZE_2X3, COL_SIZE_2X3, LV_GRID_TEMPLATE_LAST};
 static lv_coord_t rowDsc_2X3[] = {ROW_SIZE_2X3, ROW_SIZE_2X3, ROW_SIZE_2X3, LV_GRID_TEMPLATE_LAST};
 
-classScreen::classScreen(int screenNumber, int style)
+classScreen::classScreen(int number, int style)
 {
-  _screenNumber = screenNumber;
+  screenIdx = number;
 
   screen = lv_obj_create(NULL);
   lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
@@ -53,15 +53,16 @@ classScreen::classScreen(int screenNumber, int style)
   _label = lv_label_create(screen);
   lv_obj_align(_label, LV_ALIGN_BOTTOM_MID, 0, -5);
   lv_obj_set_style_text_font(_label, &lv_font_montserrat_20, 0);
-  lv_label_set_text_fmt(_label, "Screen %d", screenNumber + 1);
+  lv_label_set_text_fmt(_label, "Screen %d", screenIdx);
 
   _labelWarning = lv_label_create(screen);
   lv_obj_align(_labelWarning, LV_ALIGN_BOTTOM_RIGHT, -45, -5);
+  lv_label_set_text(_labelWarning, "");
 }
 
 int classScreen::getScreenNumber(void)
 {
-  return _screenNumber;
+  return screenIdx;
 }
 
 void classScreen::setLabel(const char *labelText)

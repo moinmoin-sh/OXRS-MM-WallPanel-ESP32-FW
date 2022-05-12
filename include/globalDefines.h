@@ -1,4 +1,5 @@
 #pragma once
+#include <Arduino.h>
 
 enum tileType_t
 {
@@ -16,11 +17,24 @@ enum tileType_t
   WINDOW
 };
 
-#define WP_OPA_BG_OFF 26
-#define WP_OPA_BG_ON 255
+#define WP_OPA_BG_OFF     26
+#define WP_OPA_BG_ON      255
 #define WP_OPA_BG_PRESSED 128
 
-#define SCREEN_ALL_MAX 9
-#define SCREEN_GRID_MAX 8
-#define SCREEN_HOME 0
-#define SCREEN_SETTINGS (SCREEN_ALL_MAX - 1)
+#define SCREEN_START      1
+#define SCREEN_END        8
+#define SCREEN_HOME       SCREEN_START
+#define SCREEN_SETTINGS   (SCREEN_END + 1)
+
+#define TILE_START        1
+#define TILE_END          6
+
+typedef union
+{
+  struct
+  {
+    uint8_t tile;
+    uint8_t screen;
+  } idx;
+  uint16_t id;
+} tileId_t;
