@@ -102,6 +102,19 @@ void classTile::begin(lv_obj_t *parent, const void *img, const char *labelText)
   lv_label_set_text(_label, labelText);
 }
 
+// supply bookkeeping information and align tile in grid
+void classTile::registerTile(int screenIdx, int tileIdx, int type)
+{
+  tileId.idx.screen = screenIdx;
+  tileId.idx.tile = tileIdx;
+  _type = type;
+
+  // position tile in grid after tile and screen are known
+  int row = (tileIdx - 1) / 2;
+  int col = (tileIdx - 1) % 2;
+  lv_obj_set_grid_cell(_btn, LV_GRID_ALIGN_CENTER, col, 1, LV_GRID_ALIGN_CENTER, row, 1);
+}
+
 void classTile::setLabel(const char *labelText)
 {
   lv_label_set_text(_label, labelText);
@@ -164,20 +177,6 @@ void classTile::setNumber(const char *number, const char *units)
   lv_obj_align_to(_unitLabel, _numLabel, LV_ALIGN_OUT_RIGHT_BOTTOM, 5, 5);
 }
 
-// supply bookkeeping information and align tile in grid
-void classTile::registerTile(int screen, int tile, int type)
-{
-  _screen = screen;
-  _tile = tile;
-  id = screen * 100 + tile;
-  _type = type;
-
-  // position tile in grid after tile and screen are known
-  int row = _tile / 2;
-  int col = _tile % 2;
-  lv_obj_set_grid_cell(_btn, LV_GRID_ALIGN_CENTER, col, 1, LV_GRID_ALIGN_CENTER, row, 1);
-}
-
 // this button calls a new screen (linkScreen)
 void classTile::setLink(int linkScreen)
 {
@@ -190,9 +189,9 @@ int classTile::getLink(void)
   return _linkedScreen;
 }
 
-int classTile::getId(void)
+tileId_t classTile::getId(void)
 {
-  return id;
+  return tileId;
 }
 
 int classTile::getType(void)
@@ -203,6 +202,11 @@ int classTile::getType(void)
 bool classTile::getState(void)
 {
   return _state;
+}
+
+char *classTile::getLabel(void)
+{
+  return lv_label_get_text(_label);
 }
 
 void classTile::addEventHandler(lv_event_cb_t callBack)

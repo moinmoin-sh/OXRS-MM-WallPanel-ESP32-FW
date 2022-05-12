@@ -7,8 +7,10 @@ class classTileList
 private:
 public:
   classTileList(void){};
+ 
   classTile &add(void);
-  classTile *get(int screen, int tile);
-  void remove(int screen, int tile);
-  int size(void);
+  classTile *get(int screenIdx, int tileIdx);
+  void remove(int screenIdx, int tileIdx);
+ 
+  int getSize(void);
 };
