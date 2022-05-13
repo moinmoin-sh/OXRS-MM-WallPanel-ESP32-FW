@@ -4,6 +4,8 @@
 extern lv_color_t colorOn;
 extern lv_color_t colorBg;
 extern "C" const lv_font_t number_OR_50;
+extern const void *imgUp;
+extern const void *imgDown;
 
 // create the tile
 void classTile::_button(lv_obj_t *parent, const void *img)
@@ -129,6 +131,10 @@ void classTile::setState(bool state)
 {
   _state = state;
   state == false ? lv_obj_clear_state(_btn, LV_STATE_CHECKED) : lv_obj_add_state(_btn, LV_STATE_CHECKED);
+  if (_btnUp)
+    state == false ? lv_obj_clear_state(_btnUp, LV_STATE_CHECKED) : lv_obj_add_state(_btnUp, LV_STATE_CHECKED);
+  if (_btnDown)
+    state == false ? lv_obj_clear_state(_btnDown, LV_STATE_CHECKED) : lv_obj_add_state(_btnDown, LV_STATE_CHECKED);
 }
 
 void classTile::setColor(lv_color_t color)
@@ -218,4 +224,61 @@ void classTile::addEventHandler(lv_event_cb_t callBack)
   lv_obj_set_style_img_recolor_opa(_btn, 255, LV_STATE_PRESSED);
   // add event handler
   lv_obj_add_event_cb(_btn, callBack, LV_EVENT_ALL, this);
+}
+
+// additional methods for on-tile level control
+
+void classTile::setLevel(int level)
+{
+  _level = level;
+  if (_levelLabel) lv_label_set_text_fmt(_levelLabel, "%d %%", level);
+}
+
+int classTile::getLevel(void)
+{
+  return _level;
+}
+
+void classTile::addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t upButtonCallBack)
+{
+  // level label
+  _levelLabel = lv_label_create(_btn);
+  lv_obj_set_size(_levelLabel, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_align(_levelLabel, LV_ALIGN_TOP_RIGHT, -20, 5);
+  lv_label_set_text(_levelLabel, "0 %");
+  lv_obj_set_style_text_color(_levelLabel, lv_color_hex(0x000000), LV_STATE_CHECKED);
+
+  // set button and label size from grid
+  int width = (*lv_obj_get_style_grid_column_dsc_array(_parent, 0) - 10) / 2 - 2;
+  int height = (*lv_obj_get_style_grid_row_dsc_array(_parent, 0) - 10) / 2 - 2;
+ 
+  // up / down  buttons
+  _btnUp = lv_btn_create(_btn);
+  lv_obj_set_size(_btnUp, width, height);
+  lv_obj_align(_btnUp, LV_ALIGN_TOP_RIGHT, 0, 0);
+  lv_obj_set_style_bg_img_src(_btnUp, imgUp, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(_btnUp, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(_btnUp, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(_btnUp, 0, LV_PART_MAIN | LV_STATE_CHECKED);
+  lv_obj_set_style_bg_img_recolor(_btnUp, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_CHECKED);
+  lv_obj_set_style_bg_img_recolor_opa(_btnUp, 255, LV_PART_MAIN | LV_STATE_CHECKED);
+  lv_obj_set_style_bg_img_recolor_opa(_btnUp, 100, LV_PART_MAIN | LV_STATE_PRESSED);
+
+  _btnDown = lv_btn_create(_btn);
+  lv_obj_set_size(_btnDown, width, height);
+  lv_obj_align(_btnDown, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+  lv_obj_set_style_bg_img_src(_btnDown, imgDown, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(_btnDown, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(_btnDown, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(_btnDown, 0, LV_PART_MAIN | LV_STATE_CHECKED);
+  lv_obj_set_style_bg_img_recolor(_btnDown, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_CHECKED);
+  lv_obj_set_style_bg_img_recolor_opa(_btnDown, 255, LV_PART_MAIN | LV_STATE_CHECKED);
+  lv_obj_set_style_bg_img_recolor_opa(_btnDown, 100, LV_PART_MAIN | LV_STATE_PRESSED);
+
+  // add event handler
+  lv_obj_add_event_cb(_btnUp, upButtonCallBack, LV_EVENT_ALL, this);
+  lv_obj_add_event_cb(_btnDown, downButtonCallBack, LV_EVENT_ALL, this);
+
+  // reduced width for main label
+  lv_obj_set_size(_label, 70, LV_SIZE_CONTENT);
 }

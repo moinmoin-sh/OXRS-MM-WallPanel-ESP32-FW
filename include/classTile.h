@@ -12,12 +12,16 @@ protected:
   lv_obj_t *_linkedLabel = NULL;
   lv_obj_t *_unitLabel = NULL;
   lv_obj_t *_numLabel = NULL;
+  lv_obj_t *_btnUp = NULL;
+  lv_obj_t *_btnDown = NULL;
+  lv_obj_t *_levelLabel = NULL;
 
   int _screenIdx = 0;
   int _tileIdx = 0;
   int _type = 0;
   int _linkedScreen = 0;
   bool _state = false;
+  int _level = 0;
   const void *_img = NULL;
 
   void _button(lv_obj_t *parent, const void *img);
@@ -49,4 +53,8 @@ public:
   char *getLabel(void);
   
   void addEventHandler(lv_event_cb_t callBack);
+
+  void setLevel(int level);
+  int getLevel(void);
+  void addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t upButtonCallBack);
 };
