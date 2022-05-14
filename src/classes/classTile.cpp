@@ -231,7 +231,6 @@ void classTile::addEventHandler(lv_event_cb_t callBack)
 void classTile::setLevel(int level)
 {
   _level = level;
-  if (_levelLabel) lv_label_set_text_fmt(_levelLabel, "%d %%", level);
 }
 
 int classTile::getLevel(void)
@@ -241,16 +240,9 @@ int classTile::getLevel(void)
 
 void classTile::addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t upButtonCallBack)
 {
-  // level label
-  _levelLabel = lv_label_create(_btn);
-  lv_obj_set_size(_levelLabel, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-  lv_obj_align(_levelLabel, LV_ALIGN_TOP_RIGHT, -20, 5);
-  lv_label_set_text(_levelLabel, "0 %");
-  lv_obj_set_style_text_color(_levelLabel, lv_color_hex(0x000000), LV_STATE_CHECKED);
-
   // set button and label size from grid
-  int width = (*lv_obj_get_style_grid_column_dsc_array(_parent, 0) - 10) / 2 - 2;
-  int height = (*lv_obj_get_style_grid_row_dsc_array(_parent, 0) - 10) / 2 - 2;
+  int width = (*lv_obj_get_style_grid_column_dsc_array(_parent, 0) - 10) / 2 + 1;
+  int height = (*lv_obj_get_style_grid_row_dsc_array(_parent, 0) - 10) / 2 + 1;
  
   // up / down  buttons
   _btnUp = lv_btn_create(_btn);
@@ -281,4 +273,42 @@ void classTile::addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t 
 
   // reduced width for main label
   lv_obj_set_size(_label, 70, LV_SIZE_CONTENT);
+}
+
+void classTile::showOvlBar(int level)
+{
+  if (lv_obj_is_valid(_ovlPanel))
+  {
+    lv_obj_del(_ovlPanel);
+  }
+
+  char buffer[8];
+  sprintf(buffer, "%d %%", level);
+  setSubLabel(buffer);
+
+  _ovlPanel = lv_obj_create(_btn);
+  lv_obj_clear_flag(_ovlPanel, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_size(_ovlPanel, 60, 70);
+  lv_obj_align(_ovlPanel, LV_ALIGN_TOP_LEFT, 2, 2);
+  lv_obj_set_style_bg_color(_ovlPanel, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(_ovlPanel, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(_ovlPanel, 255, LV_PART_MAIN | LV_STATE_CHECKED);
+
+  _bar = lv_bar_create(_ovlPanel);
+  lv_bar_set_range(_bar, 0, 100);
+  lv_bar_set_value(_bar, level, LV_ANIM_OFF);
+
+  lv_obj_set_size(_bar, 10, 60);
+  lv_obj_align(_bar, LV_ALIGN_CENTER, 000, 0);
+
+  lv_obj_set_style_radius(_bar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(_bar, 60, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+  lv_obj_set_style_radius(_bar, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(_bar, 150, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+  lv_obj_set_style_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+
+  lv_obj_del_delayed(_ovlPanel, 2000);
 }

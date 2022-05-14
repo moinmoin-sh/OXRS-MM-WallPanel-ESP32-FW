@@ -72,7 +72,7 @@ const void *imgWindow = &ios_window_60;
 const void *imgDoor = &ios_door_60;
 const void *imgCoffee = &ios_coffee_60;
 const void *imgSettings = &ios_settings_25_l;
-const void *imgUp = &ios_up_l;
+const void *imgUp = &ios_up;
 const void *imgDown = &ios_down;
 const void *imgBack = &ios_back_25_l;
 const void *imgHome = &ios_home_25_l;
@@ -423,6 +423,7 @@ static void upDownEventHandler(lv_event_t *e, int direction)
     if (level > 100) level = 100;
     if (level < 0)   level = 0;
     tPtr->setLevel(level);
+    tPtr->showOvlBar(level);
     // send event
     tileId_t tileId = tPtr->getId();
 //    printf("screen:%d  tile:%d  level:%d\n", tileId.idx.screen, tileId.idx.tile, level);

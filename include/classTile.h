@@ -14,7 +14,8 @@ protected:
   lv_obj_t *_numLabel = NULL;
   lv_obj_t *_btnUp = NULL;
   lv_obj_t *_btnDown = NULL;
-  lv_obj_t *_levelLabel = NULL;
+  lv_obj_t *_ovlPanel = NULL;
+  lv_obj_t *_bar = NULL;
 
   int _screenIdx = 0;
   int _tileIdx = 0;
@@ -56,5 +57,6 @@ public:
 
   void setLevel(int level);
   int getLevel(void);
+  void showOvlBar(int level);
   void addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t upButtonCallBack);
 };
