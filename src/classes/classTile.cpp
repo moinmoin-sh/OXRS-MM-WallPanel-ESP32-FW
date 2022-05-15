@@ -124,6 +124,10 @@ void classTile::setLabel(const char *labelText)
 
 void classTile::setSubLabel(const char *subLabelText)
 {
+  // early exit if bar visualisation is activ
+  if (lv_obj_is_valid(_ovlPanel))
+    return;
+
   lv_label_set_text(_subLabel, subLabelText);
 }
 
