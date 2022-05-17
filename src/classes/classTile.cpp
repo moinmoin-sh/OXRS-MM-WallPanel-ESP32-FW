@@ -124,6 +124,10 @@ void classTile::setLabel(const char *labelText)
 
 void classTile::setSubLabel(const char *subLabelText)
 {
+  // early exit if bar visualisation is activ
+  if (lv_obj_is_valid(_ovlPanel))
+    return;
+
   lv_label_set_text(_subLabel, subLabelText);
 }
 
@@ -230,10 +234,6 @@ void classTile::addEventHandler(lv_event_cb_t callBack)
 
 void classTile::setLevel(int level)
 {
-  // early exit if bar visualisation is activ
-  if (lv_obj_is_valid(_ovlPanel))
-    return;
-
   _level = level;
 }
 
@@ -285,6 +285,10 @@ void classTile::showOvlBar(int level)
   {
     lv_obj_del(_ovlPanel);
   }
+
+  // char buffer[8];
+  // sprintf(buffer, "%d %%", level);
+  // setSubLabel(buffer);
 
   _ovlPanel = lv_obj_create(_btn);
   lv_obj_clear_flag(_ovlPanel, LV_OBJ_FLAG_SCROLLABLE);
