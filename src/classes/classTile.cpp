@@ -276,7 +276,7 @@ void classTile::addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t 
   lv_obj_add_event_cb(_btnDown, downButtonCallBack, LV_EVENT_ALL, this);
 
   // reduced width for main label
-  lv_obj_set_size(_label, 70, LV_SIZE_CONTENT);
+  lv_obj_set_size(_label, 80, LV_SIZE_CONTENT);
 }
 
 void classTile::showOvlBar(int level)
@@ -286,12 +286,13 @@ void classTile::showOvlBar(int level)
     lv_obj_del(_ovlPanel);
   }
 
-  char buffer[8];
-  sprintf(buffer, "%d %%", level);
-  setSubLabel(buffer);
+  // char buffer[8];
+  // sprintf(buffer, "%d %%", level);
+  // setSubLabel(buffer);
 
   _ovlPanel = lv_obj_create(_btn);
   lv_obj_clear_flag(_ovlPanel, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_border_width(_ovlPanel, 0, LV_PART_MAIN);
   lv_obj_set_size(_ovlPanel, 60, 70);
   lv_obj_align(_ovlPanel, LV_ALIGN_TOP_LEFT, 2, 2);
   lv_obj_set_style_bg_color(_ovlPanel, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -299,11 +300,12 @@ void classTile::showOvlBar(int level)
   lv_obj_set_style_bg_opa(_ovlPanel, 255, LV_PART_MAIN | LV_STATE_CHECKED);
 
   _bar = lv_bar_create(_ovlPanel);
+  if (lv_obj_get_state(_btn) & LV_STATE_CHECKED)
+    lv_obj_add_state(_bar, LV_STATE_CHECKED);
   lv_bar_set_range(_bar, 0, 100);
   lv_bar_set_value(_bar, level, LV_ANIM_OFF);
-
   lv_obj_set_size(_bar, 10, 60);
-  lv_obj_align(_bar, LV_ALIGN_CENTER, 000, 0);
+  lv_obj_align(_bar, LV_ALIGN_CENTER, 10, 0);
 
   lv_obj_set_style_radius(_bar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -313,6 +315,18 @@ void classTile::showOvlBar(int level)
   lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_INDICATOR | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_opa(_bar, 150, LV_PART_INDICATOR | LV_STATE_DEFAULT);
   lv_obj_set_style_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+
+  lv_obj_set_style_bg_color(_bar, colorOn, LV_PART_INDICATOR | LV_STATE_CHECKED);
+  lv_obj_set_style_bg_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_CHECKED);
+
+  // _barLabel
+  lv_obj_t *_barLabel = lv_label_create(_ovlPanel);
+  lv_obj_set_size(_barLabel, 40, LV_SIZE_CONTENT);
+  lv_obj_align(_barLabel, LV_ALIGN_TOP_MID, -20, 000);
+  lv_obj_set_y(_barLabel, 38 - (50 * level / 100));
+  lv_obj_set_style_text_align(_barLabel, LV_TEXT_ALIGN_RIGHT, 0);
+  lv_obj_set_style_text_color(_barLabel, lv_color_hex(0x000000), 0);
+  lv_label_set_text_fmt(_barLabel, "%d", level);
 
   lv_obj_del_delayed(_ovlPanel, 2000);
 }
