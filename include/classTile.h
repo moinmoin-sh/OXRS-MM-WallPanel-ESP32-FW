@@ -55,7 +55,7 @@ public:
   
   void addEventHandler(lv_event_cb_t callBack);
 
-  void setLevel(int level);
+  void setLevel(int level, bool force);
   int getLevel(void);
   void showOvlBar(int level);
   void addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t upButtonCallBack);

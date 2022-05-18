@@ -124,10 +124,6 @@ void classTile::setLabel(const char *labelText)
 
 void classTile::setSubLabel(const char *subLabelText)
 {
-  // early exit if bar visualisation is activ
-  if (lv_obj_is_valid(_ovlPanel))
-    return;
-
   lv_label_set_text(_subLabel, subLabelText);
 }
 
@@ -232,8 +228,12 @@ void classTile::addEventHandler(lv_event_cb_t callBack)
 
 // additional methods for on-tile level control
 
-void classTile::setLevel(int level)
+void classTile::setLevel(int level, bool force)
 {
+  // early exit if bar visualisation is activ and not forced
+  if (lv_obj_is_valid(_ovlPanel) && !force)
+    return;
+
   _level = level;
 }
 
@@ -286,10 +286,6 @@ void classTile::showOvlBar(int level)
     lv_obj_del(_ovlPanel);
   }
 
-  // char buffer[8];
-  // sprintf(buffer, "%d %%", level);
-  // setSubLabel(buffer);
-
   _ovlPanel = lv_obj_create(_btn);
   lv_obj_clear_flag(_ovlPanel, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_style_border_width(_ovlPanel, 0, LV_PART_MAIN);
@@ -323,7 +319,7 @@ void classTile::showOvlBar(int level)
   lv_obj_t *_barLabel = lv_label_create(_ovlPanel);
   lv_obj_set_size(_barLabel, 40, LV_SIZE_CONTENT);
   lv_obj_align(_barLabel, LV_ALIGN_TOP_MID, -20, 000);
-  lv_obj_set_y(_barLabel, 38 - (50 * level / 100));
+  lv_obj_set_y(_barLabel, 38 - (50 * 0 / 100));
   lv_obj_set_style_text_align(_barLabel, LV_TEXT_ALIGN_RIGHT, 0);
   lv_obj_set_style_text_color(_barLabel, lv_color_hex(0x000000), 0);
   lv_label_set_text_fmt(_barLabel, "%d", level);

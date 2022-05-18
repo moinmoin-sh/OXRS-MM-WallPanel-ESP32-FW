@@ -424,7 +424,7 @@ static void upDownEventHandler(lv_event_t *e, int direction)
     level += inc;
     if (level > 100) level = 100;
     if (level < 0)   level = 0;
-    tPtr->setLevel(level);
+    tPtr->setLevel(level, true);
     tPtr->showOvlBar(level);
     // send event
     tileId_t tileId = tPtr->getId();
@@ -947,7 +947,7 @@ void jsonSetStateCommand(JsonVariant json)
 
   if (json.containsKey("level"))
   {
-    tile->setLevel(json["level"].as<int>());
+    tile->setLevel(json["level"].as<int>(), false);
   }
 
   if (json.containsKey("color"))
