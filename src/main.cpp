@@ -176,6 +176,19 @@ void publishScreenEvent(int screenIdx, const char *state)
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
+// publish message box closed Event
+// {"screen":0, "type":"msgbox", "event":"change" , "state":"closed"}
+void publishMsgBoxClosedEvent(void)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = 0;
+  json["type"] = "msgbox";
+  json["event"] = "change";
+  json["state"] = "closed";
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
 // publish local Backlight change
 //{"backlight:" 50}
 void publishBackLightTelemetry(void)
@@ -275,17 +288,6 @@ void checkNoAvtivity(void)
  * ui helper functions
  */
 
-
-void _showMsgBox(const char *title, const char *text)
-{
-  lv_obj_t *mbox1 = lv_msgbox_create(NULL, title, text, NULL, true);
-
-  lv_obj_t *cbtn = lv_msgbox_get_close_btn(mbox1);
-  lv_obj_set_style_bg_color(cbtn, lv_color_make(128, 30, 0), 0);
-  lv_obj_set_style_bg_opa(cbtn, 255, 0);
-
-  lv_obj_center(mbox1);
-}
 
 void defaultOnColorConfig(int red, int green, int blue)
 {
@@ -406,6 +408,14 @@ void screenEventHandler(lv_event_t *e)
   }
 }
 
+// message box closed event handler
+void msgBoxClosedEventHandler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  if (code == LV_EVENT_DELETE)
+    publishMsgBoxClosedEvent();
+}
+
 // Up / Down Button Event Handler
 static void upDownEventHandler(lv_event_t *e, int direction)
 {
@@ -516,6 +526,19 @@ static void backLightSliderEventHandler(lv_event_t *e)
   {
     _setBackLight(lv_slider_get_value(slider), true);
   }
+}
+
+// show modal message box on screen
+void _showMsgBox(const char *title, const char *text)
+{
+  lv_obj_t *mbox1 = lv_msgbox_create(NULL, title, text, NULL, true);
+
+  lv_obj_t *cbtn = lv_msgbox_get_close_btn(mbox1);
+  lv_obj_set_style_bg_color(cbtn, lv_color_make(128, 30, 0), 0);
+  lv_obj_set_style_bg_opa(cbtn, 255, 0);
+  lv_obj_center(mbox1);
+
+  lv_obj_add_event_cb(mbox1, msgBoxClosedEventHandler, LV_EVENT_ALL, NULL);
 }
 
 // create screen for tiles in screenVault if not exists
