@@ -8,7 +8,9 @@ private:
   lv_obj_t *_label = NULL;
   lv_obj_t *_labelWarning = NULL;
   lv_obj_t *_btnHome = NULL;
+  lv_obj_t *_btnHomeImg;
   lv_obj_t *_btnSettings = NULL;
+  lv_obj_t *_btnSettingsImg = NULL;
   lv_obj_t *_btnFooter = NULL;
 
 public:

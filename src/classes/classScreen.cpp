@@ -77,22 +77,28 @@ void classScreen::updateBgColor(void)
 
 void classScreen::createHomeButton(lv_event_cb_t callBack, const void *img)
 {
-  _btnHome = lv_imgbtn_create(screen);
-  lv_imgbtn_set_src(_btnHome, LV_IMGBTN_STATE_RELEASED, img, NULL, NULL);
+  _btnHome = lv_btn_create(screen);
   lv_obj_set_size(_btnHome, 45, 40);
+  lv_obj_set_style_bg_opa(_btnHome, 0, LV_STATE_DEFAULT);
   lv_obj_align(_btnHome, LV_ALIGN_BOTTOM_LEFT, 0, 0);
   lv_obj_clear_flag(_btnHome, LV_OBJ_FLAG_PRESS_LOCK);
+  _btnHomeImg = lv_img_create(screen);
+  lv_img_set_src(_btnHomeImg, img);
+  lv_obj_align(_btnHomeImg, LV_ALIGN_BOTTOM_LEFT, 15, -6);
   lv_obj_add_event_cb(_btnHome, callBack, LV_EVENT_ALL, this);
 }
 
 void classScreen::createSettingsButton(lv_event_cb_t callBack, const void *img)
 {
-  _btnSettings = lv_imgbtn_create(screen);
-  lv_imgbtn_set_src(_btnSettings, LV_IMGBTN_STATE_RELEASED, NULL, NULL, img);
+  _btnSettings = lv_btn_create(screen);
   lv_obj_set_size(_btnSettings, 45, 40);
+  lv_obj_set_style_bg_opa(_btnSettings, 0, LV_STATE_DEFAULT);
   lv_obj_align(_btnSettings, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
   lv_obj_clear_flag(_btnSettings, LV_OBJ_FLAG_PRESS_LOCK);
   lv_obj_add_event_cb(_btnSettings, callBack, LV_EVENT_ALL, this);
+  _btnSettingsImg = lv_img_create(screen);
+  lv_img_set_src(_btnSettingsImg, img);
+  lv_obj_align(_btnSettingsImg, LV_ALIGN_BOTTOM_RIGHT, -15, -6);
 }
 
 void classScreen::showConnectionStatus(bool connected)
