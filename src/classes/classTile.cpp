@@ -34,7 +34,7 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   _label = lv_label_create(_btn);
   lv_obj_set_size(_label, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
   lv_label_set_text(_label, "Main Label");
-  lv_obj_align(_label, LV_ALIGN_BOTTOM_LEFT, 8, -5);
+  lv_obj_align(_label, LV_ALIGN_BOTTOM_LEFT, 8, -22);
   lv_obj_set_style_text_color(_btn, lv_color_hex(0x000000), LV_STATE_CHECKED);
 
   // additional Label (show sybol ">" if button liks to new screen)
@@ -119,17 +119,11 @@ void classTile::registerTile(int screenIdx, int tileIdx, int type)
 
 void classTile::setLabel(const char *labelText)
 {
-  int yPos = (strlen(lv_label_get_text(_subLabel)) > 0) ? yPos = -22 : -5;
-  lv_obj_align(_label, LV_ALIGN_BOTTOM_LEFT, 8, yPos);
-
   lv_label_set_text(_label, labelText);
 }
 
 void classTile::setSubLabel(const char *subLabelText)
 {
-  int yPos = (strlen(subLabelText) > 0) ? -22 : -5;
-  lv_obj_align(_label, LV_ALIGN_BOTTOM_LEFT, 8, yPos);
-
   lv_label_set_text(_subLabel, subLabelText);
 }
 
