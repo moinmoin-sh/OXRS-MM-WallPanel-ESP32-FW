@@ -47,7 +47,10 @@
 // iosicons
 extern "C" const lv_img_dsc_t ios_room_60;
 extern "C" const lv_img_dsc_t ios_up;
+extern "C" const lv_img_dsc_t ios_up_l;
+extern "C" const lv_img_dsc_t ios_up_nb_30;
 extern "C" const lv_img_dsc_t ios_down;
+extern "C" const lv_img_dsc_t ios_down_nb_30;
 extern "C" const lv_img_dsc_t ios_bulb_60;
 extern "C" const lv_img_dsc_t ios_door_60;
 extern "C" const lv_img_dsc_t ios_coffee_60;
@@ -71,8 +74,8 @@ const void *imgWindow = &ios_window_60;
 const void *imgDoor = &ios_door_60;
 const void *imgCoffee = &ios_coffee_60;
 const void *imgSettings = &ios_settings_25_l;
-const void *imgUp = &ios_up;
-const void *imgDown = &ios_down;
+const void *imgUp = &ios_up_nb_30;
+const void *imgDown = &ios_down_nb_30;
 const void *imgBack = &ios_back_25_l;
 const void *imgHome = &ios_home_25_l;
 const void *imgRoom = &ios_room_60;
@@ -146,6 +149,20 @@ void publishTileEvent(int screenIdx, int tileIdx, bool state)
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
+// publish Level change Event
+// {"screen":1, "tile":1, "type":"level", "event":"change" , "state":50}
+void publishLevelEvent(int screenIdx, int tileIdx, const char *event, int value)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = screenIdx;
+  json["tile"] = tileIdx;
+  json["type"] = "level";
+  json["event"] = event;
+  json["state"] = value;
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
 // publish Screen Event
 // {"screen":1, "type":"screen", "event":"change" , "state":"unloaded"}
 void publishScreenEvent(int screenIdx, const char *state)
@@ -156,6 +173,19 @@ void publishScreenEvent(int screenIdx, const char *state)
   json["event"] = "change";
   json["state"] = state;
  
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
+// publish message box closed Event
+// {"screen":0, "type":"msgbox", "event":"change" , "state":"closed"}
+void publishMsgBoxClosedEvent(void)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = 0;
+  json["type"] = "msgbox";
+  json["event"] = "change";
+  json["state"] = "closed";
+
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
@@ -258,17 +288,6 @@ void checkNoAvtivity(void)
  * ui helper functions
  */
 
-
-void _showMsgBox(const char *title, const char *text)
-{
-  lv_obj_t *mbox1 = lv_msgbox_create(NULL, title, text, NULL, true);
-
-  lv_obj_t *cbtn = lv_msgbox_get_close_btn(mbox1);
-  lv_obj_set_style_bg_color(cbtn, lv_color_make(128, 30, 0), 0);
-  lv_obj_set_style_bg_opa(cbtn, 255, 0);
-
-  lv_obj_center(mbox1);
-}
 
 void defaultOnColorConfig(int red, int green, int blue)
 {
@@ -389,6 +408,53 @@ void screenEventHandler(lv_event_t *e)
   }
 }
 
+// message box closed event handler
+void msgBoxClosedEventHandler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  if (code == LV_EVENT_DELETE)
+    publishMsgBoxClosedEvent();
+}
+
+// Up / Down Button Event Handler
+static void upDownEventHandler(lv_event_t *e, int direction)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  if ((code == LV_EVENT_SHORT_CLICKED) || (code == LV_EVENT_LONG_PRESSED) || (code == LV_EVENT_LONG_PRESSED_REPEAT))
+  {
+    // short increments 1; long increments 5
+    int inc = 0;
+    if (code == LV_EVENT_SHORT_CLICKED) { inc = 1; }
+    else                                { inc = 5; }
+    inc *= direction;
+    // get tile* of clicked tile from USER_DATA
+    classTile *tPtr = (classTile *)lv_event_get_user_data(e);
+    int level = tPtr->getLevel();
+    // calc new value and limit to 0...100
+    level += inc;
+    if (level > 100) level = 100;
+    if (level < 0)   level = 0;
+    tPtr->setLevel(level, true);
+    tPtr->showOvlBar(level);
+    // send event
+    tileId_t tileId = tPtr->getId();
+//    printf("screen:%d  tile:%d  level:%d\n", tileId.idx.screen, tileId.idx.tile, level);
+    publishLevelEvent(tileId.idx.screen, tileId.idx.tile, "change", level);
+  }
+}
+
+// Up  Button Event Handler
+static void upButtonEventHandler(lv_event_t *e)
+{
+  upDownEventHandler(e, +1);
+}
+
+// Down  Button Event Handler
+static void downButtonEventHandler(lv_event_t *e)
+{
+  upDownEventHandler(e, -1);
+}
+
 // Tile Event Handler
 static void tileEventHandler(lv_event_t *e)
 {
@@ -462,6 +528,19 @@ static void backLightSliderEventHandler(lv_event_t *e)
   }
 }
 
+// show modal message box on screen
+void _showMsgBox(const char *title, const char *text)
+{
+  lv_obj_t *mbox1 = lv_msgbox_create(NULL, title, text, NULL, true);
+
+  lv_obj_t *cbtn = lv_msgbox_get_close_btn(mbox1);
+  lv_obj_set_style_bg_color(cbtn, lv_color_make(128, 30, 0), 0);
+  lv_obj_set_style_bg_opa(cbtn, 255, 0);
+  lv_obj_center(mbox1);
+
+  lv_obj_add_event_cb(mbox1, msgBoxClosedEventHandler, LV_EVENT_ALL, NULL);
+}
+
 // create screen for tiles in screenVault if not exists
 void createScreen(int screenIdx)
 {
@@ -527,7 +606,7 @@ const void *getIconFromType(int tileType)
 /*
  * Create any tile on any screen
  */
-void createTile(int tileType, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen)
+void createTile(int tileType, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen, bool enOnTileLevelControl)
 {
   const void *img;
   // exit if screen or tile out of range
@@ -569,6 +648,12 @@ void createTile(int tileType, int screenIdx, int tileIdx, const char *label, boo
   {
     ref.addEventHandler(tileEventHandler);
   }
+
+  // enable on-tile level control
+  if (enOnTileLevelControl)
+  {
+    ref.addLevelControl(downButtonEventHandler, upButtonEventHandler);
+}
 }
 
 // type list for config
@@ -655,7 +740,7 @@ void jsonTilesConfig(int screenIdx, JsonVariant json)
     return;
   }
 
-  createTile(parseInputType(json["type"]), screenIdx, tileIdx, json["label"], json["noClick"], json["link"]);
+  createTile(parseInputType(json["type"]), screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"]);
 }
 
 void jsonConfig(JsonVariant json)
@@ -738,6 +823,10 @@ void screenConfigSchema(JsonVariant json)
   JsonObject label3 = properties3.createNestedObject("label");
   label3["title"] = "Label";
   label3["type"] = "string";
+
+  JsonObject enOnTileLevelControl = properties3.createNestedObject("enOnTileLevelControl");
+  enOnTileLevelControl["title"] = "Enable on-tile level control (up/down buttons).";
+  enOnTileLevelControl["type"] = "boolean";
 
   JsonObject noClick = properties3.createNestedObject("noClick");
   noClick["title"] = "Disable Tile clicks";
@@ -878,7 +967,12 @@ void jsonSetStateCommand(JsonVariant json)
   {
     tile->setSubLabel(json["sublabel"]);
   }
-  
+
+  if (json.containsKey("level"))
+  {
+    tile->setLevel(json["level"].as<int>(), false);
+  }
+
   if (json.containsKey("color"))
   {
     int red = json["color"][0];
@@ -1043,7 +1137,7 @@ lv_log_register_print_cb(my_print); // register print function for debugging
   myInputDevice = lv_indev_drv_register(&indev_drv);
   // set timings for LongPress ,RepeatTime and swipe detect
   indev_drv.long_press_time = 500;
-  indev_drv.long_press_repeat_time = 500;
+  indev_drv.long_press_repeat_time = 200;
   indev_drv.gesture_limit = 40;
 
   // set colors to default, may be updated later from config handler
