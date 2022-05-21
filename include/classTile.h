@@ -16,6 +16,7 @@ protected:
   lv_obj_t *_btnDown = NULL;
   lv_obj_t *_ovlPanel = NULL;
   lv_obj_t *_bar = NULL;
+  lv_obj_t *_txtIconText = NULL;
 
   int _screenIdx = 0;
   int _tileIdx = 0;
@@ -26,9 +27,9 @@ protected:
   const void *_img = NULL;
 
   void _button(lv_obj_t *parent, const void *img);
-
-public:
-  tileId_t tileId;
+  void _reColorAll(lv_color_t color, lv_style_selector_t selector);
+  
+public : tileId_t tileId;
   lv_obj_t *btn = NULL;
 
   classTile(void){};
@@ -46,7 +47,8 @@ public:
   void setColorToDefault(void);
   void setNumber(const char *number, const char *units);
   void setLink(int linkedScreen);
-  
+  void setIconText(const char *iconText);
+
   int getLink(void);
   tileId_t getId(void);
   int getType(void);

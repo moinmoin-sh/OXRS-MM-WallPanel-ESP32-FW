@@ -13,6 +13,7 @@ enum tileType_t
   ROOM,
   SETTINGS,
   SPEAKER,
+  TEXT,
   THERMOMETER,
   WINDOW
 };
