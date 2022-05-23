@@ -358,3 +358,42 @@ void classTile::showOvlBar(int level)
 
   lv_obj_del_delayed(_ovlPanel, 2000);
 }
+
+// additional methods for on-tile level control
+
+// populate the drop down
+void classTile::setDropDownList(const char *list)
+{
+  if (lv_obj_is_valid(_dropDown))
+    lv_dropdown_set_options(_dropDown, list);
+}
+
+// select an item from the list (activate)
+// 1-based on UI
+void classTile::setSelectedItem(uint16_t index)
+{
+  if (index > 0) index--;
+  if (lv_obj_is_valid(_dropDown))
+    lv_dropdown_set_selected(_dropDown, index);
+}
+
+// add the DropDown
+void classTile::addDropDown(lv_event_cb_t dropDownEventHandler)
+{
+  _dropDown = lv_dropdown_create(_btn);
+  lv_dropdown_set_options(_dropDown, "Select");
+  int width = (*lv_obj_get_style_grid_column_dsc_array(_parent, 0) - 20);
+  lv_obj_set_size(_dropDown, width, 40);
+  lv_obj_align(_dropDown, LV_ALIGN_TOP_MID, 0, 5);
+  lv_obj_set_style_border_width(_dropDown, 0, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(_dropDown, colorBg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(_dropDown, 150, LV_PART_MAIN);
+  lv_obj_t *list = lv_dropdown_get_list(_dropDown);
+  lv_obj_set_style_border_width(list, 0, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(list, colorBg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(list, 255, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(list, colorOn, LV_PART_SELECTED | LV_STATE_PRESSED);
+  lv_obj_set_style_bg_color(list, colorOn, LV_PART_SELECTED | LV_STATE_CHECKED);
+
+  lv_obj_add_event_cb(_dropDown, dropDownEventHandler, LV_EVENT_ALL, this);
+}

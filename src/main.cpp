@@ -151,6 +151,20 @@ void publishTileEvent(int screenIdx, int tileIdx, bool state)
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
+// publish dropdown change Event
+// {"screen":1, "tile":1, "type":"dropdown", "event":"change" , "state":"selected item"}
+void publishDropDownEvent(int screenIdx, int tileIdx, const char *selectedItem)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = screenIdx;
+  json["tile"] = tileIdx;
+  json["type"] = "dropdown";
+  json["event"] = "change";
+  json["state"] = selectedItem;
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
 // publish Level change Event
 // {"screen":1, "tile":1, "type":"level", "event":"change" , "state":50}
 void publishLevelEvent(int screenIdx, int tileIdx, const char *event, int value)
@@ -457,6 +471,24 @@ static void downButtonEventHandler(lv_event_t *e)
   upDownEventHandler(e, -1);
 }
 
+// drop down event handler
+static void dropDownEventHandler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *obj = lv_event_get_target(e);
+  if (code == LV_EVENT_VALUE_CHANGED)
+  {
+    classTile *tPtr = (classTile *)lv_event_get_user_data(e);
+    tileId_t tileId = tPtr->getId();
+    int screenIdx = tileId.idx.screen;
+    int tileIdx = tileId.idx.tile;
+    char buf[32];
+    lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
+    printf("DropDown Event received : Screen: %d; Tile: %d; State: %s\n", screenIdx, tileIdx, buf);
+    publishDropDownEvent(screenIdx, tileIdx, buf);
+  }
+}
+
 // Tile Event Handler
 static void tileEventHandler(lv_event_t *e)
 {
@@ -577,6 +609,9 @@ const void *getIconFromType(int tileType)
   case DOOR:
     img = imgDoor;
     break;
+  case DROPDOWN:
+    img = NULL;
+    break;
   case LIGHT:
     img = imgBulb;
     break;
@@ -658,7 +693,13 @@ void createTile(int tileType, int screenIdx, int tileIdx, const char *label, boo
   if (enOnTileLevelControl)
   {
     ref.addLevelControl(downButtonEventHandler, upButtonEventHandler);
-}
+  }
+
+  // enable drop down
+  if (tileType == DROPDOWN)
+  {
+    ref.addDropDown(dropDownEventHandler);
+  }
 }
 
 // type list for config
@@ -669,6 +710,7 @@ void createInputTypeEnum(JsonObject parent)
   typeEnum.add("blind");
   typeEnum.add("coffee");
   typeEnum.add("door");
+  typeEnum.add("dropdown");
   typeEnum.add("light");
   typeEnum.add("number");
   typeEnum.add("onoff");
@@ -685,6 +727,7 @@ int parseInputType(const char *inputType)
   if (strcmp(inputType, "blind") == 0)        { return BLIND; }
   if (strcmp(inputType, "coffee") == 0)       { return COFFEE; }
   if (strcmp(inputType, "door") == 0)         { return DOOR; }
+  if (strcmp(inputType, "dropdown") == 0)     { return DROPDOWN; }
   if (strcmp(inputType, "light") == 0)        { return LIGHT; }
   if (strcmp(inputType, "number") == 0)       { return NUMBER; };
   if (strcmp(inputType, "onoff") == 0)        { return ONOFF; };
@@ -1005,6 +1048,16 @@ void jsonSetStateCommand(JsonVariant json)
   if (json.containsKey("text"))
   {
     tile->setIconText(json["text"]);
+  }
+
+  if (json.containsKey("dropdownlist"))
+  {
+    tile->setDropDownList(json["dropdownlist"]);
+  }
+
+  if (json.containsKey("dropdownselect"))
+  {
+    tile->setSelectedItem(json["dropdownselect"].as<uint>());
   }
 }
 

@@ -17,6 +17,7 @@ protected:
   lv_obj_t *_ovlPanel = NULL;
   lv_obj_t *_bar = NULL;
   lv_obj_t *_txtIconText = NULL;
+  lv_obj_t *_dropDown = NULL;
 
   int _screenIdx = 0;
   int _tileIdx = 0;
@@ -61,4 +62,8 @@ public : tileId_t tileId;
   int getLevel(void);
   void showOvlBar(int level);
   void addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t upButtonCallBack);
+
+  void setDropDownList(const char *list);
+  void setSelectedItem(uint16_t index);
+  void addDropDown(lv_event_cb_t dropDownEventHandler);
 };

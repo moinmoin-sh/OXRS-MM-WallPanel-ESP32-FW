@@ -7,6 +7,7 @@ enum tileType_t
   BLIND,
   COFFEE,
   DOOR,
+  DROPDOWN,
   LIGHT,
   NUMBER,
   ONOFF,
