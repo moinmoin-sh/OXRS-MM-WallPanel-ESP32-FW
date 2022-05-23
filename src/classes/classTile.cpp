@@ -33,7 +33,7 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   // main Label (placeholder)
   _label = lv_label_create(_btn);
   lv_obj_set_size(_label, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-  lv_label_set_text(_label, "Main Label");
+  lv_label_set_text(_label, "");
   lv_obj_align(_label, LV_ALIGN_BOTTOM_LEFT, 8, -22);
   lv_obj_set_style_text_color(_btn, lv_color_hex(0x000000), LV_STATE_CHECKED);
 
@@ -64,6 +64,15 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   lv_label_set_text(_unitLabel, "");
   lv_obj_set_style_text_color(_unitLabel, lv_color_hex(0x000000), LV_STATE_CHECKED);
 
+  // label for text to replace icon  (hide by default)
+  _txtIconText = lv_label_create(_btn);
+  lv_obj_align(_txtIconText, LV_ALIGN_TOP_LEFT, 8, 4);
+  lv_obj_set_style_text_font(_txtIconText, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(_txtIconText, colorOn, LV_PART_MAIN | LV_STATE_CHECKED);
+  lv_label_set_text(_txtIconText, "");
+  lv_label_set_recolor(_txtIconText, true);
+  lv_obj_add_flag(_txtIconText, LV_OBJ_FLAG_HIDDEN);
+
   // set button and label size from grid
   int width = *lv_obj_get_style_grid_column_dsc_array(parent, 0) - 10;
   int height = *lv_obj_get_style_grid_row_dsc_array(parent, 0) - 10;
@@ -72,10 +81,19 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   lv_obj_set_height(_btn, height);
 
   lv_obj_set_size(_label, width - 10, LV_SIZE_CONTENT);
-
   lv_obj_set_size(_subLabel, width - 10, LV_SIZE_CONTENT);
+  lv_obj_set_size(_txtIconText, width - 20, height - 4);
 
   btn = _btn;
+}
+
+// recolor all effected objects
+void classTile::_reColorAll(lv_color_t color, lv_style_selector_t selector)
+{
+  lv_obj_set_style_img_recolor(_btn, color, selector);
+  lv_obj_set_style_text_color(_numLabel, color, selector);
+  lv_obj_set_style_text_color(_unitLabel, color, selector);
+  lv_obj_set_style_text_color(_txtIconText, color, selector);
 }
 
 classTile::classTile(lv_obj_t *parent, const void *img)
@@ -131,6 +149,7 @@ void classTile::setState(bool state)
 {
   _state = state;
   state == false ? lv_obj_clear_state(_btn, LV_STATE_CHECKED) : lv_obj_add_state(_btn, LV_STATE_CHECKED);
+  state == false ? lv_obj_clear_state(_txtIconText, LV_STATE_CHECKED) : lv_obj_add_state(_txtIconText, LV_STATE_CHECKED);
   if (_btnUp)
     state == false ? lv_obj_clear_state(_btnUp, LV_STATE_CHECKED) : lv_obj_add_state(_btnUp, LV_STATE_CHECKED);
   if (_btnDown)
@@ -141,15 +160,11 @@ void classTile::setColor(lv_color_t color)
 {
   if (lv_obj_get_state(_btn) & LV_STATE_CHECKED)
   {
-    lv_obj_set_style_img_recolor(_btn, color, LV_STATE_CHECKED);
-    lv_obj_set_style_text_color(_numLabel, color, LV_STATE_CHECKED);
-    lv_obj_set_style_text_color(_unitLabel, color, LV_STATE_CHECKED);
+    _reColorAll(color, LV_STATE_CHECKED);
   }
   else
   {
-    lv_obj_set_style_img_recolor(_btn, color, LV_IMGBTN_STATE_RELEASED);
-    lv_obj_set_style_text_color(_numLabel, color, LV_IMGBTN_STATE_RELEASED);
-    lv_obj_set_style_text_color(_unitLabel, color, LV_IMGBTN_STATE_RELEASED);
+    _reColorAll(color, LV_IMGBTN_STATE_RELEASED);
   }
 }
 
@@ -162,15 +177,11 @@ void classTile::setColorToDefault(void)
 {
   if (lv_obj_get_state(_btn) & LV_STATE_CHECKED)
   {
-    lv_obj_set_style_img_recolor(_btn, colorOn, LV_STATE_CHECKED);
-    lv_obj_set_style_text_color(_numLabel, colorOn, LV_STATE_CHECKED);
-    lv_obj_set_style_text_color(_unitLabel, colorOn, LV_STATE_CHECKED);
+    _reColorAll(colorOn, LV_STATE_CHECKED);
   }
   else
   {
-    lv_obj_set_style_img_recolor(_btn, lv_color_hex(0xffffff), LV_IMGBTN_STATE_RELEASED);
-    lv_obj_set_style_text_color(_numLabel, lv_color_hex(0xffffff), LV_IMGBTN_STATE_RELEASED);
-    lv_obj_set_style_text_color(_unitLabel, lv_color_hex(0xffffff), LV_IMGBTN_STATE_RELEASED);
+    _reColorAll(lv_color_hex(0xffffff), LV_IMGBTN_STATE_RELEASED);
   }
 }
 
@@ -213,6 +224,27 @@ bool classTile::getState(void)
 char *classTile::getLabel(void)
 {
   return lv_label_get_text(_label);
+}
+
+// replaces the existing icon by selected text, reverts to icon if text is empty
+void classTile::setIconText(const char *iconText)
+{
+  if (strlen(iconText) == 0)
+  {
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_RELEASED, _img, NULL, NULL);
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, _img, NULL, NULL);
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, _img, NULL, NULL);
+    lv_obj_add_flag(_txtIconText, LV_OBJ_FLAG_HIDDEN);
+  }
+  else
+  {
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, NULL, NULL, NULL);
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, NULL, NULL, NULL);
+
+    lv_label_set_text(_txtIconText, iconText);
+    lv_obj_clear_flag(_txtIconText, LV_OBJ_FLAG_HIDDEN);
+  }
 }
 
 void classTile::addEventHandler(lv_event_cb_t callBack)
