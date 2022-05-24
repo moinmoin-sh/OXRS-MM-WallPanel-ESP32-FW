@@ -32,6 +32,7 @@
 #include <classScreen.h>
 #include <classScreenList.h>
 #include <classScreenSettings.h>
+#include <classDropDown.h>
 
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -111,6 +112,9 @@ classScreenSettings screenSettings = classScreenSettings();
 // WT32 handler
 OXRS_WT32 wt32;
 
+// drop down overlay
+classDropDown dropDownOverlay = classDropDown();
+
 /*--------------------------- screen / lvgl relevant  -----------------------------*/
 
 // Change to your screen resolution
@@ -152,15 +156,15 @@ void publishTileEvent(int screenIdx, int tileIdx, bool state)
 }
 
 // publish dropdown change Event
-// {"screen":1, "tile":1, "type":"dropdown", "event":"change" , "state":"selected item"}
-void publishDropDownEvent(int screenIdx, int tileIdx, const char *selectedItem)
+// {"screen":1, "tile":1, "type":"dropdown", "event":"change" , "state":1}
+void publishDropDownEvent(int screenIdx, int tileIdx, int listIndex)
 {
   StaticJsonDocument<128> json;
   json["screen"] = screenIdx;
   json["tile"] = tileIdx;
   json["type"] = "dropdown";
   json["event"] = "change";
-  json["state"] = selectedItem;
+  json["state"] = listIndex;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -482,10 +486,14 @@ static void dropDownEventHandler(lv_event_t *e)
     tileId_t tileId = tPtr->getId();
     int screenIdx = tileId.idx.screen;
     int tileIdx = tileId.idx.tile;
-    char buf[32];
+    char buf[64];
     lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
+    int listIndex = lv_dropdown_get_selected(obj) + 1;
     printf("DropDown Event received : Screen: %d; Tile: %d; State: %s\n", screenIdx, tileIdx, buf);
-    publishDropDownEvent(screenIdx, tileIdx, buf);
+    publishDropDownEvent(screenIdx, tileIdx, listIndex);
+    tPtr->setIconText(buf);
+    tPtr->setDropDownIndex(listIndex);
+    dropDownOverlay.close();
   }
 }
 
@@ -508,6 +516,12 @@ static void tileEventHandler(lv_event_t *e)
     if (linkedScreen > 0)
     {
       screenVault.show(linkedScreen);
+    }
+    // button is type DROPDOWN -> show drop down overlay
+    else if (tPtr->getType() == DROPDOWN)
+    {
+      dropDownOverlay = classDropDown(tPtr, dropDownEventHandler);
+      dropDownOverlay.open();
     }
     //  publish click event
     else
@@ -698,7 +712,7 @@ void createTile(int tileType, int screenIdx, int tileIdx, const char *label, boo
   // enable drop down
   if (tileType == DROPDOWN)
   {
-    ref.addDropDown(dropDownEventHandler);
+    ref.setDropDownIndicator() ;
   }
 }
 
@@ -810,7 +824,6 @@ void jsonConfig(JsonVariant json)
     _noActivityTimeOut = json["noActivitySeconds"].as<int>() * 1000;
   }
  
-
   if (json.containsKey("screens"))
   {
     for (JsonVariant screenJson : json["screens"].as<JsonArray>())
@@ -1057,7 +1070,12 @@ void jsonSetStateCommand(JsonVariant json)
 
   if (json.containsKey("dropdownselect"))
   {
-    tile->setSelectedItem(json["dropdownselect"].as<uint>());
+    tile->setDropDownIndex(json["dropdownselect"].as<uint>());
+  }
+
+  if (json.containsKey("dropdownlabel"))
+  {
+    tile->setDropDownLabel(json["dropdownlabel"]);
   }
 }
 

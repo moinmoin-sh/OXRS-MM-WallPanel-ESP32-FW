@@ -23,6 +23,9 @@ enum tileType_t
 #define WP_OPA_BG_ON      255
 #define WP_OPA_BG_PRESSED 128
 
+#define SCREEN_WIDTH      320
+#define SCREEN_HEIGHT     480
+
 #define SCREEN_START      1
 #define SCREEN_END        8
 #define SCREEN_HOME       SCREEN_START
