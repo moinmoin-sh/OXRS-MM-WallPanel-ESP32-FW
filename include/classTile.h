@@ -32,8 +32,10 @@ protected:
 
   void _button(lv_obj_t *parent, const void *img);
   void _reColorAll(lv_color_t color, lv_style_selector_t selector);
-  
-public : tileId_t tileId;
+  void _setIconTextFromIndex(void);
+
+public :
+  tileId_t tileId;
   lv_obj_t *btn = NULL;
 
   classTile(void){};

@@ -96,6 +96,24 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   btn = _btn;
 }
 
+void classTile::_setIconTextFromIndex()
+{
+  const char *text = lv_label_get_text(_dropDownList);
+  if (strlen(text) == 0)
+    return;
+
+  int index = _dropDownIndex;
+  if (index > 0)
+    index--;
+  lv_obj_t *dd = lv_dropdown_create(_btn);
+  lv_dropdown_set_options(dd, lv_label_get_text(_dropDownList));
+  lv_dropdown_set_selected(dd, index);
+  char buf[64];
+  lv_dropdown_get_selected_str(dd, buf, sizeof(buf));
+  setIconText(buf);
+  lv_obj_del(dd);
+}
+
 // recolor all effected objects
 void classTile::_reColorAll(lv_color_t color, lv_style_selector_t selector)
 {
@@ -374,12 +392,14 @@ void classTile::showOvlBar(int level)
 void classTile::setDropDownList(const char *list)
 {
   lv_label_set_text(_dropDownList, list);
+  _setIconTextFromIndex();
 }
 
 // store selected item index
 void classTile::setDropDownIndex(uint16_t index)
 {
   _dropDownIndex = index;
+  _setIconTextFromIndex();
 }
 
 // store drop down label
