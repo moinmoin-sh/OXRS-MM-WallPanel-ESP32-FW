@@ -480,7 +480,8 @@ static void dropDownEventHandler(lv_event_t *e)
 {
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t *obj = lv_event_get_target(e);
-  if (code == LV_EVENT_VALUE_CHANGED)
+  // CANCEL fired when drop down list closed 
+  if (code == LV_EVENT_CANCEL)
   {
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
     tileId_t tileId = tPtr->getId();
