@@ -72,6 +72,15 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   lv_label_set_text(_txtIconText, "");
   lv_label_set_recolor(_txtIconText, true);
   lv_obj_add_flag(_txtIconText, LV_OBJ_FLAG_HIDDEN);
+ 
+  // placeholders for drop down
+  _dropDownList = lv_label_create(_btn);
+  lv_obj_add_flag(_dropDownList, LV_OBJ_FLAG_HIDDEN);
+  lv_label_set_text(_dropDownList, "");
+
+  _dropDownLabel = lv_label_create(_btn);
+  lv_obj_add_flag(_dropDownLabel, LV_OBJ_FLAG_HIDDEN);
+  lv_label_set_text(_dropDownLabel, "");
 
   // set button and label size from grid
   int width = *lv_obj_get_style_grid_column_dsc_array(parent, 0) - 10;
@@ -85,6 +94,24 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   lv_obj_set_size(_txtIconText, width - 20, height - 4);
 
   btn = _btn;
+}
+
+void classTile::_setIconTextFromIndex()
+{
+  const char *text = lv_label_get_text(_dropDownList);
+  if (strlen(text) > 0)
+  {
+    int index = _dropDownIndex;
+    if (index > 0)
+      index--;
+    lv_obj_t *dd = lv_dropdown_create(_btn);
+    lv_dropdown_set_options(dd, text);
+    lv_dropdown_set_selected(dd, index);
+    char buf[64];
+    lv_dropdown_get_selected_str(dd, buf, sizeof(buf));
+    setIconText(buf);
+    lv_obj_del(dd);
+  }
 }
 
 // recolor all effected objects
@@ -357,4 +384,52 @@ void classTile::showOvlBar(int level)
   lv_label_set_text_fmt(_barLabel, "%d", level);
 
   lv_obj_del_delayed(_ovlPanel, 2000);
+}
+
+// additional methods for drop down (interface)
+
+// store drop down list
+void classTile::setDropDownList(const char *list)
+{
+  lv_label_set_text(_dropDownList, list);
+  _setIconTextFromIndex();
+}
+
+// store selected item index
+void classTile::setDropDownIndex(uint16_t index)
+{
+  _dropDownIndex = index;
+  _setIconTextFromIndex();
+}
+
+// store drop down label
+void classTile::setDropDownLabel(const char *label)
+{
+  lv_label_set_text(_dropDownLabel, label);
+}
+
+// get the stored list
+const char *classTile::getDropDownList(void)
+{
+  return lv_label_get_text(_dropDownList);
+}
+
+// get the stored index
+uint16_t classTile::getDropDownIndex(void)
+{
+  return _dropDownIndex;
+}
+
+// get the stored label (NULL if "")
+const char *classTile::getDropDownLabel(void)
+{
+  if (strlen(lv_label_get_text(_dropDownLabel)) == 0)
+    return NULL;
+  else
+    return lv_label_get_text(_dropDownLabel);
+}
+
+void classTile::setDropDownIndicator(void)
+{
+  lv_label_set_text(_linkedLabel, LV_SYMBOL_DOWN);
 }

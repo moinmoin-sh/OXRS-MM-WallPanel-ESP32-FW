@@ -32,6 +32,7 @@
 #include <classScreen.h>
 #include <classScreenList.h>
 #include <classScreenSettings.h>
+#include <classDropDown.h>
 
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -111,6 +112,9 @@ classScreenSettings screenSettings = classScreenSettings();
 // WT32 handler
 OXRS_WT32 wt32;
 
+// drop down overlay
+classDropDown dropDownOverlay = classDropDown();
+
 /*--------------------------- screen / lvgl relevant  -----------------------------*/
 
 // Change to your screen resolution
@@ -147,6 +151,20 @@ void publishTileEvent(int screenIdx, int tileIdx, bool state)
   json["type"] = "button";
   json["event"] = "single";
   state == true ? json["state"] = "on" : json["state"] = "off";
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
+// publish dropdown change Event
+// {"screen":1, "tile":1, "type":"dropdown", "event":"change" , "state":1}
+void publishDropDownEvent(int screenIdx, int tileIdx, int listIndex)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = screenIdx;
+  json["tile"] = tileIdx;
+  json["type"] = "dropdown";
+  json["event"] = "change";
+  json["state"] = listIndex;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -457,6 +475,29 @@ static void downButtonEventHandler(lv_event_t *e)
   upDownEventHandler(e, -1);
 }
 
+// drop down event handler
+static void dropDownEventHandler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *obj = lv_event_get_target(e);
+  // CANCEL fired when drop down list closed 
+  if (code == LV_EVENT_CANCEL)
+  {
+    classTile *tPtr = (classTile *)lv_event_get_user_data(e);
+    tileId_t tileId = tPtr->getId();
+    int screenIdx = tileId.idx.screen;
+    int tileIdx = tileId.idx.tile;
+    char buf[64];
+    lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
+    int listIndex = lv_dropdown_get_selected(obj) + 1;
+    printf("DropDown Event received : Screen: %d; Tile: %d; State: %s\n", screenIdx, tileIdx, buf);
+    publishDropDownEvent(screenIdx, tileIdx, listIndex);
+    tPtr->setIconText(buf);
+    tPtr->setDropDownIndex(listIndex);
+    dropDownOverlay.close();
+  }
+}
+
 // Tile Event Handler
 static void tileEventHandler(lv_event_t *e)
 {
@@ -476,6 +517,12 @@ static void tileEventHandler(lv_event_t *e)
     if (linkedScreen > 0)
     {
       screenVault.show(linkedScreen);
+    }
+    // button is type DROPDOWN -> show drop down overlay
+    else if (tPtr->getType() == DROPDOWN)
+    {
+      dropDownOverlay = classDropDown(tPtr, dropDownEventHandler);
+      dropDownOverlay.open();
     }
     //  publish click event
     else
@@ -577,6 +624,9 @@ const void *getIconFromType(int tileType)
   case DOOR:
     img = imgDoor;
     break;
+  case DROPDOWN:
+    img = NULL;
+    break;
   case LIGHT:
     img = imgBulb;
     break;
@@ -658,7 +708,13 @@ void createTile(int tileType, int screenIdx, int tileIdx, const char *label, boo
   if (enOnTileLevelControl)
   {
     ref.addLevelControl(downButtonEventHandler, upButtonEventHandler);
-}
+  }
+
+  // enable drop down
+  if (tileType == DROPDOWN)
+  {
+    ref.setDropDownIndicator() ;
+  }
 }
 
 // type list for config
@@ -669,6 +725,7 @@ void createInputTypeEnum(JsonObject parent)
   typeEnum.add("blind");
   typeEnum.add("coffee");
   typeEnum.add("door");
+  typeEnum.add("dropdown");
   typeEnum.add("light");
   typeEnum.add("number");
   typeEnum.add("onoff");
@@ -685,6 +742,7 @@ int parseInputType(const char *inputType)
   if (strcmp(inputType, "blind") == 0)        { return BLIND; }
   if (strcmp(inputType, "coffee") == 0)       { return COFFEE; }
   if (strcmp(inputType, "door") == 0)         { return DOOR; }
+  if (strcmp(inputType, "dropdown") == 0)     { return DROPDOWN; }
   if (strcmp(inputType, "light") == 0)        { return LIGHT; }
   if (strcmp(inputType, "number") == 0)       { return NUMBER; };
   if (strcmp(inputType, "onoff") == 0)        { return ONOFF; };
@@ -767,7 +825,6 @@ void jsonConfig(JsonVariant json)
     _noActivityTimeOut = json["noActivitySeconds"].as<int>() * 1000;
   }
  
-
   if (json.containsKey("screens"))
   {
     for (JsonVariant screenJson : json["screens"].as<JsonArray>())
@@ -1005,6 +1062,21 @@ void jsonSetStateCommand(JsonVariant json)
   if (json.containsKey("text"))
   {
     tile->setIconText(json["text"]);
+  }
+
+  if (json.containsKey("dropdownlist"))
+  {
+    tile->setDropDownList(json["dropdownlist"]);
+  }
+
+  if (json.containsKey("dropdownselect"))
+  {
+    tile->setDropDownIndex(json["dropdownselect"].as<uint>());
+  }
+
+  if (json.containsKey("dropdownlabel"))
+  {
+    tile->setDropDownLabel(json["dropdownlabel"]);
   }
 }
 

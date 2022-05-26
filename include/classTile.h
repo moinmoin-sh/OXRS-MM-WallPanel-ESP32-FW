@@ -17,6 +17,9 @@ protected:
   lv_obj_t *_ovlPanel = NULL;
   lv_obj_t *_bar = NULL;
   lv_obj_t *_txtIconText = NULL;
+  lv_obj_t *_dropDown = NULL;
+  lv_obj_t *_dropDownList = NULL;
+  lv_obj_t *_dropDownLabel = NULL;
 
   int _screenIdx = 0;
   int _tileIdx = 0;
@@ -25,11 +28,14 @@ protected:
   bool _state = false;
   int _level = 0;
   const void *_img = NULL;
+  uint16_t _dropDownIndex = 0;
 
   void _button(lv_obj_t *parent, const void *img);
   void _reColorAll(lv_color_t color, lv_style_selector_t selector);
-  
-public : tileId_t tileId;
+  void _setIconTextFromIndex(void);
+
+public :
+  tileId_t tileId;
   lv_obj_t *btn = NULL;
 
   classTile(void){};
@@ -61,4 +67,12 @@ public : tileId_t tileId;
   int getLevel(void);
   void showOvlBar(int level);
   void addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t upButtonCallBack);
+
+  void setDropDownList(const char *list);
+  void setDropDownIndex(uint16_t index);
+  void setDropDownLabel(const char *label);
+  const char *getDropDownList(void);
+  uint16_t getDropDownIndex(void);
+  const char *getDropDownLabel(void);
+  void setDropDownIndicator(void);
 };
