@@ -112,10 +112,6 @@ void classTile::_setIconTextFromIndex()
     setIconText(buf);
     lv_obj_del(dd);
   }
-  else
-  {
-    setIconText("#ff0000 DropDown List empty#");
-  }
 }
 
 // recolor all effected objects
