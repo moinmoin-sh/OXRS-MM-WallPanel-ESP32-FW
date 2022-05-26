@@ -99,19 +99,23 @@ void classTile::_button(lv_obj_t *parent, const void *img)
 void classTile::_setIconTextFromIndex()
 {
   const char *text = lv_label_get_text(_dropDownList);
-  if (strlen(text) == 0)
-    return;
-
-  int index = _dropDownIndex;
-  if (index > 0)
-    index--;
-  lv_obj_t *dd = lv_dropdown_create(_btn);
-  lv_dropdown_set_options(dd, lv_label_get_text(_dropDownList));
-  lv_dropdown_set_selected(dd, index);
-  char buf[64];
-  lv_dropdown_get_selected_str(dd, buf, sizeof(buf));
-  setIconText(buf);
-  lv_obj_del(dd);
+  if (strlen(text) > 0)
+  {
+    int index = _dropDownIndex;
+    if (index > 0)
+      index--;
+    lv_obj_t *dd = lv_dropdown_create(_btn);
+    lv_dropdown_set_options(dd, text);
+    lv_dropdown_set_selected(dd, index);
+    char buf[64];
+    lv_dropdown_get_selected_str(dd, buf, sizeof(buf));
+    setIconText(buf);
+    lv_obj_del(dd);
+  }
+  else
+  {
+    setIconText("#ff0000 DropDown List empty#");
+  }
 }
 
 // recolor all effected objects

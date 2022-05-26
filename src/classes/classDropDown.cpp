@@ -40,18 +40,22 @@ classDropDown::classDropDown(classTile* tile, lv_event_cb_t dropDownEventHandler
   // configure the drop down 
   _dropDown = lv_dropdown_create(_panel);
   lv_obj_set_style_text_font(_dropDown, &lv_font_montserrat_20, 0);
-  lv_dropdown_set_options(_dropDown, "empty");
+  lv_obj_set_style_pad_ver(_dropDown, 18, LV_PART_MAIN);
   lv_obj_set_size(_dropDown, 300, LV_SIZE_CONTENT);
   lv_obj_align(_dropDown, LV_ALIGN_TOP_MID, 00, 10);
   lv_obj_set_style_border_width(_dropDown, 0, LV_PART_MAIN);
   lv_obj_set_style_bg_color(_dropDown, colorBg, LV_PART_MAIN);
   lv_obj_set_style_bg_opa(_dropDown, 150, LV_PART_MAIN);
+  lv_dropdown_set_options(_dropDown, "empty");
   lv_obj_t* list = lv_dropdown_get_list(_dropDown);
-  lv_obj_set_style_max_height(list, 400, LV_PART_MAIN);
+  lv_obj_set_style_max_height(list, 370, LV_PART_MAIN);
+  lv_obj_set_style_max_width(list, 300, LV_PART_MAIN);
   lv_obj_set_style_border_width(list, 0, LV_PART_MAIN);
+  lv_obj_set_style_text_line_space(list, 30, LV_PART_MAIN);
   lv_obj_set_style_text_font(list, &lv_font_montserrat_20, 0);
   lv_obj_set_style_bg_color(list, lv_color_hex(0xffffff), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(list, WP_OPA_BG_OFF, LV_PART_MAIN);
+  lv_obj_set_style_radius(list, 5, LV_PART_SELECTED);
   lv_obj_set_style_bg_color(list, colorOn, LV_PART_SELECTED | LV_STATE_PRESSED);
   lv_obj_set_style_bg_color(list, colorOn, LV_PART_SELECTED | LV_STATE_CHECKED);
 
