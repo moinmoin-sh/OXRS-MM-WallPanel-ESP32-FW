@@ -66,8 +66,8 @@ public :
   void setLevel(int level, bool force);
   int getLevel(void);
   void showOvlBar(int level);
-  void addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t upButtonCallBack);
-
+  void addUpDownControl(lv_event_cb_t upDownEventHandler, const void* imgUpperButton, const void* imgLowerButton);
+ 
   void setDropDownList(const char *list);
   void setDropDownIndex(uint16_t index);
   void setDropDownLabel(const char *label);

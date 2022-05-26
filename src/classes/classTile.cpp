@@ -305,7 +305,7 @@ int classTile::getLevel(void)
   return _level;
 }
 
-void classTile::addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t upButtonCallBack)
+void classTile::addUpDownControl(lv_event_cb_t upDownEventHandler, const void *imgUpperButton, const void *imgLowerButton)
 {
   // set button and label size from grid
   int width = (*lv_obj_get_style_grid_column_dsc_array(_parent, 0) - 10) / 2 + 1;
@@ -315,18 +315,20 @@ void classTile::addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t 
   _btnUp = lv_btn_create(_btn);
   lv_obj_set_size(_btnUp, width, height);
   lv_obj_align(_btnUp, LV_ALIGN_TOP_RIGHT, 0, 0);
-  lv_obj_set_style_bg_img_src(_btnUp, imgUp, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_img_src(_btnUp, imgUpperButton, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_color(_btnUp, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_opa(_btnUp, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_opa(_btnUp, 0, LV_PART_MAIN | LV_STATE_CHECKED);
   lv_obj_set_style_bg_img_recolor(_btnUp, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_CHECKED);
   lv_obj_set_style_bg_img_recolor_opa(_btnUp, 255, LV_PART_MAIN | LV_STATE_CHECKED);
   lv_obj_set_style_bg_img_recolor_opa(_btnUp, 100, LV_PART_MAIN | LV_STATE_PRESSED);
+  // upper button has flag set to differentiate from lower button
+  lv_obj_add_flag(_btnUp, LV_OBJ_FLAG_USER_1);
 
   _btnDown = lv_btn_create(_btn);
   lv_obj_set_size(_btnDown, width, height);
   lv_obj_align(_btnDown, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
-  lv_obj_set_style_bg_img_src(_btnDown, imgDown, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_img_src(_btnDown, imgLowerButton, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_color(_btnDown, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_opa(_btnDown, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_opa(_btnDown, 0, LV_PART_MAIN | LV_STATE_CHECKED);
@@ -335,8 +337,8 @@ void classTile::addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t 
   lv_obj_set_style_bg_img_recolor_opa(_btnDown, 100, LV_PART_MAIN | LV_STATE_PRESSED);
 
   // add event handler
-  lv_obj_add_event_cb(_btnUp, upButtonCallBack, LV_EVENT_ALL, this);
-  lv_obj_add_event_cb(_btnDown, downButtonCallBack, LV_EVENT_ALL, this);
+  lv_obj_add_event_cb(_btnUp, upDownEventHandler, LV_EVENT_ALL, this);
+  lv_obj_add_event_cb(_btnDown, upDownEventHandler, LV_EVENT_ALL, this);
 
   // reduced width for main label
   lv_obj_set_size(_label, 80, LV_SIZE_CONTENT);

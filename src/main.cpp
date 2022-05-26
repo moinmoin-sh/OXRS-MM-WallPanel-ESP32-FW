@@ -69,6 +69,10 @@ extern "C" const lv_img_dsc_t splash;
 extern "C" const lv_img_dsc_t ios_onoff_60;
 extern "C" const lv_img_dsc_t ios_speaker_60;
 extern "C" const lv_img_dsc_t ios_t_60;
+extern "C" const lv_img_dsc_t ios_prev_40;
+extern "C" const lv_img_dsc_t ios_next_40;
+extern "C" const lv_img_dsc_t ios_play_60;
+extern "C" const lv_img_dsc_t ios_pause_60;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -87,6 +91,10 @@ const void *imgSplash = &splash;
 const void *imgOnOff = &ios_onoff_60;
 const void *imgSpeaker = &ios_speaker_60;
 const void *imgText = &ios_t_60;
+const void *imgPrev = &ios_prev_40;
+const void *imgNext = &ios_next_40;
+const void *imgPlay = &ios_play_60;
+const void *imgPause = &ios_pause_60;
 
 int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
@@ -179,6 +187,19 @@ void publishLevelEvent(int screenIdx, int tileIdx, const char *event, int value)
   json["type"] = "level";
   json["event"] = event;
   json["state"] = value;
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
+// publish prev / next Event
+// {"screen":1, "tile":1, "type":"button", "event":"prev" }
+void publishPrevNextEvent(int screenIdx, int tileIdx, const char* event)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = screenIdx;
+  json["tile"] = tileIdx;
+  json["type"] = "button";
+  json["event"] = event;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -437,42 +458,47 @@ void msgBoxClosedEventHandler(lv_event_t *e)
 }
 
 // Up / Down Button Event Handler
-static void upDownEventHandler(lv_event_t *e, int direction)
+static void upDownEventHandler(lv_event_t *e)
 {
   lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *btn = lv_event_get_target(e);
+
   if ((code == LV_EVENT_SHORT_CLICKED) || (code == LV_EVENT_LONG_PRESSED) || (code == LV_EVENT_LONG_PRESSED_REPEAT))
   {
     // short increments 1; long increments 5
-    int inc = 0;
-    if (code == LV_EVENT_SHORT_CLICKED) { inc = 1; }
-    else                                { inc = 5; }
-    inc *= direction;
+    int increment = (code == LV_EVENT_SHORT_CLICKED) ? 1 : 5;
+    int direction = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? 1 : -1;
+    increment *= direction;
     // get tile* of clicked tile from USER_DATA
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
     int level = tPtr->getLevel();
     // calc new value and limit to 0...100
-    level += inc;
+    level += increment;
     if (level > 100) level = 100;
-    if (level < 0)   level = 0;
+    if (level < 0) level = 0;
     tPtr->setLevel(level, true);
     tPtr->showOvlBar(level);
     // send event
     tileId_t tileId = tPtr->getId();
-//    printf("screen:%d  tile:%d  level:%d\n", tileId.idx.screen, tileId.idx.tile, level);
+    //    printf("screen:%d  tile:%d  level:%d\n", tileId.idx.screen, tileId.idx.tile, level);
     publishLevelEvent(tileId.idx.screen, tileId.idx.tile, "change", level);
   }
 }
 
-// Up  Button Event Handler
-static void upButtonEventHandler(lv_event_t *e)
+// previous/next event handler
+static void prevNextEventHandler(lv_event_t *e)
 {
-  upDownEventHandler(e, +1);
-}
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *btn = lv_event_get_target(e);
 
-// Down  Button Event Handler
-static void downButtonEventHandler(lv_event_t *e)
-{
-  upDownEventHandler(e, -1);
+  if (code == LV_EVENT_SHORT_CLICKED)
+  {
+    const char *event = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? "prev" : "next";
+    classTile *tPtr = (classTile *)lv_event_get_user_data(e);
+    tileId_t tileId = tPtr->getId();
+    printf("Button state : %s\n", event);
+    publishPrevNextEvent(tileId.idx.screen, tileId.idx.tile, event);
+  }
 }
 
 // drop down event handler
@@ -707,7 +733,7 @@ void createTile(int tileType, int screenIdx, int tileIdx, const char *label, boo
   // enable on-tile level control
   if (enOnTileLevelControl)
   {
-    ref.addLevelControl(downButtonEventHandler, upButtonEventHandler);
+    ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
   }
 
   // enable drop down
