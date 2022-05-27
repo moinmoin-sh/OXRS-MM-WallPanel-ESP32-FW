@@ -131,8 +131,40 @@ void classScreenList::showNext(lv_obj_t* screenObj)
   show(it->screenIdx);
 }
 
+void classScreenList::showByIndex(int index)
+{
+  std::list<classScreen>::iterator it;
+  it = std::begin(_listScreens);
+  while (index--)
+  {
+    it++;
+  }
+  lv_disp_load_scr(it->screen);
+}
+
 // return size from list
 int classScreenList::getSize(void)
 {
   return _listScreens.size();
+}
+
+// make list to show available screens in drop down
+// return drop down list index of current screen
+int classScreenList::makeDropDownList(char *list, lv_obj_t *screenObj)
+{
+  int i = 0;
+  int retVal = 0;
+  list[0] = 0;
+  std::list<classScreen>::iterator it;
+  it = std::begin(_listScreens);
+  strcat(list, it->getLabel());
+  while (++it != _listScreens.end())
+  {
+    strcat(list, "\n");
+    strcat(list, it->getLabel());
+    i++;
+    if (it->screen == screenObj) retVal = i;
+  }
+
+  return retVal;
 }

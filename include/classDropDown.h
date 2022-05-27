@@ -16,6 +16,8 @@ private:
   lv_obj_t* _dropDown = NULL;
   lv_obj_t* _barLabel = NULL;
 
+  void _createDropDown(void);
+
 public:
   lv_obj_t* ovlPanel = NULL;
 
@@ -27,6 +29,6 @@ public:
 
   void setDropDownList(const char *list);
   void setDropDownIndex(uint16_t index);
-  void setDropdDownLabel(const char* label);
+  void setDropDownLabel(const char* label);
 
 };

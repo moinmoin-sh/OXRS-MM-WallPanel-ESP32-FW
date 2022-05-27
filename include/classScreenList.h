@@ -5,7 +5,7 @@
 class classScreenList
 {
 private:
- 
+
 public:
   classScreenList(void){};
   classScreen &add(int screenIdx, int style);
@@ -18,5 +18,7 @@ public:
   bool show(int screenIdx);
   void showPrev(lv_obj_t* screenObj);
   void showNext(lv_obj_t* screenObj);
+  int makeDropDownList(char *list, lv_obj_t *screenObj);
+  void showByIndex(int index);
   int getSize(void);
 };

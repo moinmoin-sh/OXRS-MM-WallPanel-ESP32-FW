@@ -518,10 +518,22 @@ static void dropDownEventHandler(lv_event_t *e)
     char buf[64];
     lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
     int listIndex = lv_dropdown_get_selected(obj) + 1;
-    printf("DropDown Event received : Screen: %d; Tile: %d; State: %s\n", screenIdx, tileIdx, buf);
+//    printf("DropDown Event received : Screen: %d; Tile: %d; State: %s\n", screenIdx, tileIdx, buf);
     publishDropDownEvent(screenIdx, tileIdx, listIndex);
     tPtr->setIconText(buf);
     tPtr->setDropDownIndex(listIndex);
+    dropDownOverlay.close();
+  }
+}
+
+static void screenDropDownEventHandler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *obj = lv_event_get_target(e);
+  if (code == LV_EVENT_CANCEL) 
+  {
+    int listIndex = lv_dropdown_get_selected(obj);
+    screenVault.showByIndex(listIndex);
     dropDownOverlay.close();
   }
 }
@@ -577,15 +589,17 @@ static void footerButtonEventHandler(lv_event_t *e)
   lv_obj_t *ta = lv_event_get_target(e);
   if (event == LV_EVENT_SHORT_CLICKED)
   {
-    // left side clicked -> HomeButton
-    if (ta->coords.x1 < 160)
+    if (lv_obj_has_flag(ta, LV_OBJ_FLAG_USER_1))  screenVault.show(SCREEN_HOME);
+    if (lv_obj_has_flag(ta, LV_OBJ_FLAG_USER_3))  screenVault.show(SCREEN_SETTINGS);
+    if (lv_obj_has_flag(ta, LV_OBJ_FLAG_USER_2))
     {
-      screenVault.show(SCREEN_HOME);
-    }
-    // right side clicked -> SettingsButton
-    else
-    {
-      screenVault.show(SCREEN_SETTINGS);
+      dropDownOverlay = classDropDown(NULL, screenDropDownEventHandler);
+      char buf[256];
+      int index = screenVault.makeDropDownList(buf, lv_scr_act()) + 1;
+      dropDownOverlay.setDropDownList(buf);
+      dropDownOverlay.setDropDownIndex(index);
+      dropDownOverlay.setDropDownLabel("Select Screen");
+      dropDownOverlay.open();
     }
   }
 }
@@ -853,7 +867,7 @@ void jsonTilesConfig(int screenIdx, JsonVariant json)
     return;
   }
 
-  createTile(parseInputType(json["type"]), screenIdx, tileIdx, json["label"].as<char*>(), json["noClick"], json["link"], json["enOnTileLevelControl"]);
+  createTile(parseInputType(json["type"]), screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"]);
 }
 
 void jsonConfig(JsonVariant json)

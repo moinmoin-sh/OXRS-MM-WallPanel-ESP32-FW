@@ -68,6 +68,11 @@ void classScreen::setLabel(const char *labelText)
   lv_label_set_text(_label, labelText);
 }
 
+const char *classScreen::getLabel(void)
+{
+  return lv_label_get_text(_label);
+}
+
 void classScreen::updateBgColor(void)
 {
   lv_obj_set_style_bg_color(screen, colorBg, LV_PART_MAIN);
@@ -83,7 +88,11 @@ void classScreen::createHomeButton(lv_event_cb_t callBack, const void *img)
   _btnHomeImg = lv_img_create(screen);
   lv_img_set_src(_btnHomeImg, img);
   lv_obj_align(_btnHomeImg, LV_ALIGN_BOTTOM_LEFT, 15, -6);
+  lv_obj_add_flag(_btnHome, LV_OBJ_FLAG_USER_1);
   lv_obj_add_event_cb(_btnHome, callBack, LV_EVENT_ALL, this);
+
+  lv_obj_add_flag(_btnFooter, LV_OBJ_FLAG_USER_2);
+  lv_obj_add_event_cb(_btnFooter, callBack, LV_EVENT_ALL, this);
 }
 
 void classScreen::createSettingsButton(lv_event_cb_t callBack, const void *img)
@@ -93,6 +102,7 @@ void classScreen::createSettingsButton(lv_event_cb_t callBack, const void *img)
   lv_obj_set_style_bg_opa(_btnSettings, 0, LV_STATE_DEFAULT);
   lv_obj_align(_btnSettings, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
   lv_obj_clear_flag(_btnSettings, LV_OBJ_FLAG_PRESS_LOCK);
+  lv_obj_add_flag(_btnSettings, LV_OBJ_FLAG_USER_3);
   lv_obj_add_event_cb(_btnSettings, callBack, LV_EVENT_ALL, this);
   _btnSettingsImg = lv_img_create(screen);
   lv_img_set_src(_btnSettingsImg, img);
@@ -116,8 +126,8 @@ void classScreen::showConnectionStatus(bool connected)
 void classScreen::adWipeEventHandler(lv_event_cb_t callBack)
 {
   //    lv_obj_set_gesture_parent(_btnFooter, false);
-  lv_obj_clear_flag(_btnFooter, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  lv_obj_add_event_cb(_btnFooter, callBack, LV_EVENT_GESTURE, this);
+//  lv_obj_clear_flag(_btnFooter, LV_OBJ_FLAG_GESTURE_BUBBLE);
+//  lv_obj_add_event_cb(_btnFooter, callBack, LV_EVENT_GESTURE, this);
 }
 
 void classScreen::adScreenEventHandler(lv_event_cb_t callBack)
