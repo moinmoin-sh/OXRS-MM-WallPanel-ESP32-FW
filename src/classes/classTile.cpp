@@ -4,14 +4,13 @@
 extern lv_color_t colorOn;
 extern lv_color_t colorBg;
 extern "C" const lv_font_t number_OR_50;
-extern const void *imgUp;
-extern const void *imgDown;
 
 // create the tile
 void classTile::_button(lv_obj_t *parent, const void *img)
 {
   _parent = parent;
   _img = img;
+  _imgOn = img;
 
   // image button
   _btn = lv_imgbtn_create(_parent);
@@ -21,12 +20,12 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   lv_obj_set_style_img_recolor(_btn, lv_color_hex(0xffffff), LV_PART_MAIN | LV_IMGBTN_STATE_RELEASED);
   lv_obj_set_style_img_recolor_opa(_btn, 255, LV_PART_MAIN | LV_IMGBTN_STATE_RELEASED);
 
-  lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, img, NULL, NULL);
+  lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, _imgOn, NULL, NULL);
   lv_obj_set_style_bg_opa(_btn, WP_OPA_BG_ON, LV_STATE_CHECKED);
   lv_obj_set_style_img_recolor(_btn, colorOn, LV_STATE_CHECKED);
   lv_obj_set_style_img_recolor_opa(_btn, 255, LV_STATE_CHECKED);
 
-  lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, img, NULL, NULL);
+  lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, _imgOn, NULL, NULL);
 
   lv_obj_clear_flag(_btn, LV_OBJ_FLAG_PRESS_LOCK);
 
@@ -253,14 +252,22 @@ char *classTile::getLabel(void)
   return lv_label_get_text(_label);
 }
 
+// set 2nd icon to alternate state dependent
+void classTile::setIconForStateOn(const void *imgStateOn)
+{
+  _imgOn = (imgStateOn != NULL) ? imgStateOn : _img;
+  lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, _imgOn, NULL, NULL);
+  lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, _imgOn, NULL, NULL);
+}
+
 // replaces the existing icon by selected text, reverts to icon if text is empty
 void classTile::setIconText(const char *iconText)
 {
   if (strlen(iconText) == 0)
   {
     lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_RELEASED, _img, NULL, NULL);
-    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, _img, NULL, NULL);
-    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, _img, NULL, NULL);
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, _imgOn, NULL, NULL);
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, _imgOn, NULL, NULL);
     lv_obj_add_flag(_txtIconText, LV_OBJ_FLAG_HIDDEN);
   }
   else

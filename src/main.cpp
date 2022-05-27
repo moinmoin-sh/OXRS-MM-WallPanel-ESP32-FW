@@ -73,6 +73,7 @@ extern "C" const lv_img_dsc_t ios_prev_40;
 extern "C" const lv_img_dsc_t ios_next_40;
 extern "C" const lv_img_dsc_t ios_play_60;
 extern "C" const lv_img_dsc_t ios_pause_60;
+extern "C" const lv_img_dsc_t ios_music_60;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -95,6 +96,7 @@ const void *imgPrev = &ios_prev_40;
 const void *imgNext = &ios_next_40;
 const void *imgPlay = &ios_play_60;
 const void *imgPause = &ios_pause_60;
+const void *imgMusic = &ios_music_60;
 
 int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
@@ -126,8 +128,8 @@ classDropDown dropDownOverlay = classDropDown();
 /*--------------------------- screen / lvgl relevant  -----------------------------*/
 
 // Change to your screen resolution
-static const uint16_t screenWidth = 320;
-static const uint16_t screenHeight = 480;
+static const uint16_t screenWidth = SCREEN_WIDTH;
+static const uint16_t screenHeight = SCREEN_HEIGHT;
 
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[screenWidth * 10];
@@ -151,14 +153,14 @@ void my_print(const char *buf)
 
 // publish Tile Event
 // {"screen":1, "tile":1, "type":"button", "event":"single" , "state":"on"}
-void publishTileEvent(int screenIdx, int tileIdx, bool state)
+void publishTileEvent(int screenIdx, int tileIdx, const char* event, bool state)
 {
   StaticJsonDocument<128> json;
   json["screen"] = screenIdx;
   json["tile"] = tileIdx;
   json["type"] = "button";
-  json["event"] = "single";
-  state == true ? json["state"] = "on" : json["state"] = "off";
+  json["event"] = event;
+  json["state"] = (state == true) ? "on" : "off";
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -529,7 +531,7 @@ static void tileEventHandler(lv_event_t *e)
 {
   lv_event_code_t code = lv_event_get_code(e);
 
-  if (code == LV_EVENT_SHORT_CLICKED)
+  if ((code == LV_EVENT_SHORT_CLICKED) || (code == LV_EVENT_LONG_PRESSED))
   {
     // get tile* of clicked tile from USER_DATA
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
@@ -539,27 +541,30 @@ static void tileEventHandler(lv_event_t *e)
     int linkedScreen = tPtr->getLink();
     bool state = tPtr->getState();
     printf("Click Event received: Screen : %d; Tile : %d; Link : %d; State : %d\n", screenIdx, tileIdx, linkedScreen, state);
-    // button has link -> call linked screen
-    if (linkedScreen > 0)
+    if (code == LV_EVENT_SHORT_CLICKED)
     {
-      screenVault.show(linkedScreen);
+      // button has link -> call linked screen
+      if (linkedScreen > 0)
+      {
+        screenVault.show(linkedScreen);
+      }
+      // button is type DROPDOWN -> show drop down overlay
+      else if (tPtr->getType() == DROPDOWN)
+      {
+        dropDownOverlay = classDropDown(tPtr, dropDownEventHandler);
+        dropDownOverlay.open();
+      }
+      //  publish click event
+      else
+      {
+        publishTileEvent(screenIdx, tileIdx, "single", state);
+      }
     }
-    // button is type DROPDOWN -> show drop down overlay
-    else if (tPtr->getType() == DROPDOWN)
-    {
-      dropDownOverlay = classDropDown(tPtr, dropDownEventHandler);
-      dropDownOverlay.open();
-    }
-    //  publish click event
+    // long press detected
     else
     {
-      publishTileEvent(screenIdx, tileIdx, state);
+      publishTileEvent(screenIdx, tileIdx, "hold", state);
     }
-  }
-
-  if (code == LV_EVENT_LONG_PRESSED)
-  {
-    // use internal and call pop-up
   }
 }
 
@@ -656,11 +661,17 @@ const void *getIconFromType(int tileType)
   case LIGHT:
     img = imgBulb;
     break;
+  case MUSIC:
+    img = imgMusic;
+    break;
   case NUMBER:
     img = NULL;
     break;
   case ONOFF:
     img = imgOnOff;
+    break;
+  case PLAYER:
+    img = imgPlay;
     break;
   case ROOM:
     img = imgRoom;
@@ -741,6 +752,13 @@ void createTile(int tileType, int screenIdx, int tileIdx, const char *label, boo
   {
     ref.setDropDownIndicator() ;
   }
+
+  // enable mini player
+  if (tileType == PLAYER)
+  {
+    ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
+    ref.setIconForStateOn(imgPause);
+  }
 }
 
 // type list for config
@@ -753,8 +771,10 @@ void createInputTypeEnum(JsonObject parent)
   typeEnum.add("door");
   typeEnum.add("dropdown");
   typeEnum.add("light");
+  typeEnum.add("music");
   typeEnum.add("number");
   typeEnum.add("onoff");
+  typeEnum.add("player");
   typeEnum.add("room");
   typeEnum.add("speaker");
   typeEnum.add("text");
@@ -770,8 +790,10 @@ int parseInputType(const char *inputType)
   if (strcmp(inputType, "door") == 0)         { return DOOR; }
   if (strcmp(inputType, "dropdown") == 0)     { return DROPDOWN; }
   if (strcmp(inputType, "light") == 0)        { return LIGHT; }
-  if (strcmp(inputType, "number") == 0)       { return NUMBER; };
-  if (strcmp(inputType, "onoff") == 0)        { return ONOFF; };
+  if (strcmp(inputType, "number") == 0)       { return NUMBER; }
+  if (strcmp(inputType, "music") == 0)        { return MUSIC; }
+  if (strcmp(inputType, "onoff") == 0)        { return ONOFF; }
+  if (strcmp(inputType, "player") == 0)       { return PLAYER; }
   if (strcmp(inputType, "room") == 0)         { return ROOM; }
   if (strcmp(inputType, "speaker") == 0)      { return SPEAKER; }
   if (strcmp(inputType, "text") == 0)         { return TEXT; }
@@ -831,7 +853,7 @@ void jsonTilesConfig(int screenIdx, JsonVariant json)
     return;
   }
 
-  createTile(parseInputType(json["type"]), screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"]);
+  createTile(parseInputType(json["type"]), screenIdx, tileIdx, json["label"].as<char*>(), json["noClick"], json["link"], json["enOnTileLevelControl"]);
 }
 
 void jsonConfig(JsonVariant json)
@@ -1278,7 +1300,6 @@ lv_log_register_print_cb(my_print); // register print function for debugging
 */
 void loop()
 {
-
   // Let WT32 hardware handle any events etc
   wt32.loop();
   updateConnectionStatus();

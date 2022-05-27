@@ -8,8 +8,6 @@ extern lv_color_t colorBg;
 
 // grid definitions
 // sub screens 3 x 2 + home button
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 480
 #define FOOTER_HEIGHT 25
 #define COLS_2X3 2
 #define ROWS_2X3 3

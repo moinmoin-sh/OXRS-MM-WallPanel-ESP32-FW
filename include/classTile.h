@@ -28,6 +28,7 @@ protected:
   bool _state = false;
   int _level = 0;
   const void *_img = NULL;
+  const void *_imgOn = NULL;
   uint16_t _dropDownIndex = 0;
 
   void _button(lv_obj_t *parent, const void *img);
@@ -53,6 +54,7 @@ public :
   void setColorToDefault(void);
   void setNumber(const char *number, const char *units);
   void setLink(int linkedScreen);
+  void setIconForStateOn(const void* imgStateOn);
   void setIconText(const char *iconText);
 
   int getLink(void);
