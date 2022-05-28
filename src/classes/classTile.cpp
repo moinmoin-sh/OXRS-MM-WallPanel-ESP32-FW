@@ -149,11 +149,14 @@ void classTile::begin(lv_obj_t *parent, const void *img, const char *labelText)
 }
 
 // supply bookkeeping information and align tile in grid
-void classTile::registerTile(int screenIdx, int tileIdx, int type)
+void classTile::registerTile(int screenIdx, int tileIdx, int type, const char* typeStr)
 {
+  _screenIdx = screenIdx;
+  _tileIdx = tileIdx;
   tileId.idx.screen = screenIdx;
   tileId.idx.tile = tileIdx;
   _type = type;
+  strcpy(_typeStr, typeStr);
 
   // position tile in grid after tile and screen are known
   int row = (tileIdx - 1) / 2;
@@ -237,9 +240,24 @@ tileId_t classTile::getId(void)
   return tileId;
 }
 
+int classTile::getScreenIdx(void)
+{
+  return _screenIdx;
+}
+
+int classTile::getTileIdx(void)
+{
+  return _tileIdx;
+}
+
 int classTile::getType(void)
 {
   return _type;
+}
+
+const char* classTile::getTypeStr(void)
+{
+  return _typeStr;
 }
 
 bool classTile::getState(void)

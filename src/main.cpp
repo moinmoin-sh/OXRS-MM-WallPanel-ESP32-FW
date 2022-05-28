@@ -153,25 +153,27 @@ void my_print(const char *buf)
 
 // publish Tile Event
 // {"screen":1, "tile":1, "type":"button", "event":"single" , "state":"on"}
-void publishTileEvent(int screenIdx, int tileIdx, const char* event, bool state)
+void publishTileEvent(classTile *tPtr, const char *event)
 {
   StaticJsonDocument<128> json;
-  json["screen"] = screenIdx;
-  json["tile"] = tileIdx;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
   json["type"] = "button";
   json["event"] = event;
-  json["state"] = (state == true) ? "on" : "off";
+  json["state"] = (tPtr->getState() == true) ? "on" : "off";
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
 // publish dropdown change Event
 // {"screen":1, "tile":1, "type":"dropdown", "event":"change" , "state":1}
-void publishDropDownEvent(int screenIdx, int tileIdx, int listIndex)
+void publishDropDownEvent(classTile *tPtr, int listIndex)
 {
   StaticJsonDocument<128> json;
-  json["screen"] = screenIdx;
-  json["tile"] = tileIdx;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
   json["type"] = "dropdown";
   json["event"] = "change";
   json["state"] = listIndex;
@@ -181,11 +183,12 @@ void publishDropDownEvent(int screenIdx, int tileIdx, int listIndex)
 
 // publish Level change Event
 // {"screen":1, "tile":1, "type":"level", "event":"change" , "state":50}
-void publishLevelEvent(int screenIdx, int tileIdx, const char *event, int value)
+void publishLevelEvent(classTile *tPtr, const char *event, int value)
 {
   StaticJsonDocument<128> json;
-  json["screen"] = screenIdx;
-  json["tile"] = tileIdx;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
   json["type"] = "level";
   json["event"] = event;
   json["state"] = value;
@@ -195,11 +198,12 @@ void publishLevelEvent(int screenIdx, int tileIdx, const char *event, int value)
 
 // publish prev / next Event
 // {"screen":1, "tile":1, "type":"button", "event":"prev" }
-void publishPrevNextEvent(int screenIdx, int tileIdx, const char* event)
+void publishPrevNextEvent(classTile *tPtr, const char *event)
 {
   StaticJsonDocument<128> json;
-  json["screen"] = screenIdx;
-  json["tile"] = tileIdx;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
   json["type"] = "button";
   json["event"] = event;
 
@@ -481,9 +485,7 @@ static void upDownEventHandler(lv_event_t *e)
     tPtr->setLevel(level, true);
     tPtr->showOvlBar(level);
     // send event
-    tileId_t tileId = tPtr->getId();
-    //    printf("screen:%d  tile:%d  level:%d\n", tileId.idx.screen, tileId.idx.tile, level);
-    publishLevelEvent(tileId.idx.screen, tileId.idx.tile, "change", level);
+    publishLevelEvent(tPtr, "change", level);
   }
 }
 
@@ -497,9 +499,7 @@ static void prevNextEventHandler(lv_event_t *e)
   {
     const char *event = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? "prev" : "next";
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
-    tileId_t tileId = tPtr->getId();
-    printf("Button state : %s\n", event);
-    publishPrevNextEvent(tileId.idx.screen, tileId.idx.tile, event);
+    publishPrevNextEvent(tPtr, event);
   }
 }
 
@@ -512,14 +512,11 @@ static void dropDownEventHandler(lv_event_t *e)
   if (code == LV_EVENT_CANCEL)
   {
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
-    tileId_t tileId = tPtr->getId();
-    int screenIdx = tileId.idx.screen;
-    int tileIdx = tileId.idx.tile;
     char buf[64];
     lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
     int listIndex = lv_dropdown_get_selected(obj) + 1;
 //    printf("DropDown Event received : Screen: %d; Tile: %d; State: %s\n", screenIdx, tileIdx, buf);
-    publishDropDownEvent(screenIdx, tileIdx, listIndex);
+    publishDropDownEvent(tPtr, listIndex);
     tPtr->setIconText(buf);
     tPtr->setDropDownIndex(listIndex);
     dropDownOverlay.close();
@@ -548,11 +545,7 @@ static void tileEventHandler(lv_event_t *e)
     // get tile* of clicked tile from USER_DATA
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
     tileId_t tileId = tPtr->getId();
-    int screenIdx = tileId.idx.screen;
-    int tileIdx = tileId.idx.tile;
     int linkedScreen = tPtr->getLink();
-    bool state = tPtr->getState();
-    printf("Click Event received: Screen : %d; Tile : %d; Link : %d; State : %d\n", screenIdx, tileIdx, linkedScreen, state);
     if (code == LV_EVENT_SHORT_CLICKED)
     {
       // button has link -> call linked screen
@@ -569,13 +562,13 @@ static void tileEventHandler(lv_event_t *e)
       //  publish click event
       else
       {
-        publishTileEvent(screenIdx, tileIdx, "single", state);
+        publishTileEvent(tPtr, "single");
       }
     }
     // long press detected
     else
     {
-      publishTileEvent(screenIdx, tileIdx, "hold", state);
+      publishTileEvent(tPtr, "hold");
     }
   }
 }
@@ -709,72 +702,6 @@ const void *getIconFromType(int tileType)
   return img;
 }
 
-/*
- * Create any tile on any screen
- */
-void createTile(int tileType, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen, bool enOnTileLevelControl)
-{
-  const void *img;
-  // exit if screen or tile out of range
-  if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END) || (tileIdx < TILE_START) || (tileIdx > TILE_END))
-  {
-    printf("Config error. screen or tile out of range\n");
-    return;
-  }
-  // TODO check if entry to be deleted
-  // Deletion of tiles via config not defined yet, requires reboot
-  if (tileType == NONE)
-  {
-  };
-
-  // create screen if not exist
-  createScreen(screenIdx);
-
-  // delete icon reference if exist
-  tileVault.remove(screenIdx, tileIdx);
-
-  // set icon tileType dependent
-  img = getIconFromType(tileType);
-
-  // create new Tile
-  classTile &ref = tileVault.add();
-  ref.begin(screenVault.get(screenIdx)->container, img, label);
-  ref.registerTile(screenIdx, tileIdx, tileType);
-
-  // handle icons depending on tileType capabilities
-  if (linkedScreen)
-  {
-    ref.setLink(linkedScreen);
-    // create screen if not exist
-    createScreen(linkedScreen);
-  }
-
-  // set the event handler
-  if (linkedScreen || !noClick)
-  {
-    ref.addEventHandler(tileEventHandler);
-  }
-
-  // enable on-tile level control
-  if (enOnTileLevelControl)
-  {
-    ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
-  }
-
-  // enable drop down
-  if (tileType == DROPDOWN)
-  {
-    ref.setDropDownIndicator() ;
-  }
-
-  // enable mini player
-  if (tileType == PLAYER)
-  {
-    ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
-    ref.setIconForStateOn(imgPause);
-  }
-}
-
 // type list for config
 void createInputTypeEnum(JsonObject parent)
 {
@@ -815,6 +742,71 @@ int parseInputType(const char *inputType)
   if (strcmp(inputType, "window") == 0)       { return WINDOW; }
 
   return NONE;
+}
+
+// Create any tile on any screen
+void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen, bool enOnTileLevelControl)
+{
+  const void *img;
+  // exit if screen or tile out of range
+  if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END) || (tileIdx < TILE_START) || (tileIdx > TILE_END))
+  {
+    printf("Config error. screen or tile out of range\n");
+    return;
+  }
+  // TODO check if entry to be deleted
+  // Deletion of tiles via config not defined yet, requires reboot
+  // if (tileType == NONE)
+  // {
+  // };
+
+  // create screen if not exist
+  createScreen(screenIdx);
+
+  // delete icon reference if exist
+  tileVault.remove(screenIdx, tileIdx);
+
+  // set icon tileType dependent
+  int tileType = parseInputType(typeStr);
+  img = getIconFromType(tileType);
+
+  // create new Tile parseInputType(json["type"])
+  classTile &ref = tileVault.add();
+  ref.begin(screenVault.get(screenIdx)->container, img, label);
+  ref.registerTile(screenIdx, tileIdx, tileType, typeStr);
+
+  // handle icons depending on tileType capabilities
+  if (linkedScreen)
+  {
+    ref.setLink(linkedScreen);
+    // create screen if not exist
+    createScreen(linkedScreen);
+  }
+
+  // set the event handler
+  if (linkedScreen || !noClick)
+  {
+    ref.addEventHandler(tileEventHandler);
+  }
+
+  // enable on-tile level control
+  if (enOnTileLevelControl)
+  {
+    ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
+  }
+
+  // enable drop down
+  if (tileType == DROPDOWN)
+  {
+    ref.setDropDownIndicator() ;
+  }
+
+  // enable mini player
+  if (tileType == PLAYER)
+  {
+    ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
+    ref.setIconForStateOn(imgPause);
+  }
 }
 
 /**
@@ -867,7 +859,7 @@ void jsonTilesConfig(int screenIdx, JsonVariant json)
     return;
   }
 
-  createTile(parseInputType(json["type"]), screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"]);
+  createTile(json["type"], screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"]);
 }
 
 void jsonConfig(JsonVariant json)
