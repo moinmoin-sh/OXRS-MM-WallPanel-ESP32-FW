@@ -363,29 +363,29 @@ void defaultThemeColorConfig(int red, int green, int blue)
 void updateInfoText(void)
 {
   char buffer[40];
-  char buffer2[40];
 
-  lv_obj_t *_infoTextArea = screenSettings.getInfoPanel();
+  lv_obj_t *table = screenSettings.getInfoPanel();
+  lv_table_set_row_cnt(table,7);
+  lv_table_set_col_cnt(table, 2);
 
-  sprintf(buffer, "Name:\t%s\n", STRINGIFY(FW_NAME));
-  lv_textarea_set_text(_infoTextArea, buffer);
-  sprintf(buffer, "Maker:\t%s\n", STRINGIFY(FW_MAKER));
-  lv_textarea_add_text(_infoTextArea, buffer);
-  sprintf(buffer, "Version:\t%s\n", STRINGIFY(FW_VERSION));
-  lv_textarea_add_text(_infoTextArea, buffer);
-  lv_textarea_add_text(_infoTextArea, "\n");
+  lv_table_set_cell_value(table, 0, 0, "Name:");
+  lv_table_set_cell_value(table, 0, 1, STRINGIFY(FW_NAME));
+  lv_table_set_cell_value(table, 1, 0, "Maker:");
+  lv_table_set_cell_value(table, 1, 1, STRINGIFY(FW_MAKER));
+  lv_table_set_cell_value(table, 2, 0, "Version:");
+  lv_table_set_cell_value(table, 2, 1, STRINGIFY(FW_VERSION));
 
-  wt32.getMACAddressTxt(buffer2);
-  sprintf(buffer, "MAC:\t%s\n", buffer2);
-  lv_textarea_add_text(_infoTextArea, buffer);
+  lv_table_set_cell_value(table, 4, 0, "MAC:");
+  wt32.getMACAddressTxt(buffer);
+  lv_table_set_cell_value(table, 4, 1, buffer);
 
-  wt32.getIPAddressTxt(buffer2);
-  sprintf(buffer, "IP:\t%s\n", buffer2);
-  lv_textarea_add_text(_infoTextArea, buffer);
+  lv_table_set_cell_value(table, 5, 0, "IP:");
+  wt32.getIPAddressTxt(buffer);
+  lv_table_set_cell_value(table, 5, 1, buffer);
 
-  wt32.getMQTTTopicTxt(buffer2);
-  sprintf(buffer, "MQTT:\t%s\n", buffer2);
-  lv_textarea_add_text(_infoTextArea, buffer);
+  lv_table_set_cell_value(table, 6, 0, "MQTT:");
+  wt32.getMQTTTopicTxt(buffer);
+  lv_table_set_cell_value(table, 6, 1, buffer);
 }
 
 // check for changes in IP/MQTT connection and update warning sign in footer

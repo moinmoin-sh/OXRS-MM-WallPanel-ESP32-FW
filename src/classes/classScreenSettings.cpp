@@ -17,12 +17,20 @@ classScreenSettings::classScreenSettings(lv_obj_t *parent, const void *img)
   lv_img_set_src(_imgLogo, img);
   lv_obj_set_align(_imgLogo, LV_ALIGN_TOP_MID);
 
-  _infoTextArea = lv_textarea_create(_parent);
+  _infoTextArea = lv_table_create(_parent);
   lv_obj_set_size(_infoTextArea, 320, 150);
+  lv_obj_align_to(_infoTextArea, _imgLogo, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
+  lv_obj_set_style_radius(_infoTextArea, 5, 0);
   lv_obj_set_style_bg_color(_infoTextArea, lv_color_hex(0xffffff), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(_infoTextArea, 50, LV_PART_MAIN);
   lv_obj_set_style_border_width(_infoTextArea, 0, LV_PART_MAIN);
-  lv_obj_align_to(_infoTextArea, _imgLogo, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
+  lv_obj_set_style_pad_all(_infoTextArea, 5, LV_PART_MAIN);
+  lv_obj_set_style_border_width(_infoTextArea, 0, LV_PART_ITEMS);
+  lv_obj_set_style_pad_all(_infoTextArea, 2, LV_PART_ITEMS);
+  lv_obj_set_style_bg_opa(_infoTextArea, 0, LV_PART_ITEMS);
+
+  lv_table_set_col_width(_infoTextArea, 0, 70);
+  lv_table_set_col_width(_infoTextArea, 1, 320 - 70 - 10);
 
   // backligth slider
   _panelSlider = lv_obj_create(_parent);
@@ -30,6 +38,7 @@ classScreenSettings::classScreenSettings(lv_obj_t *parent, const void *img)
   lv_obj_align_to(_panelSlider, _infoTextArea, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
   lv_obj_set_style_bg_color(_panelSlider, lv_color_hex(0xffffff), 0);
   lv_obj_set_style_bg_opa(_panelSlider, 40, 0);
+  lv_obj_set_style_border_width(_panelSlider, 0, 0);
 
   // ui_Slider2
   _slider = lv_slider_create(_panelSlider);
