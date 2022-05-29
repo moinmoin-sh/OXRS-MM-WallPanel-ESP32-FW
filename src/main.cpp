@@ -69,6 +69,11 @@ extern "C" const lv_img_dsc_t splash;
 extern "C" const lv_img_dsc_t ios_onoff_60;
 extern "C" const lv_img_dsc_t ios_speaker_60;
 extern "C" const lv_img_dsc_t ios_t_60;
+extern "C" const lv_img_dsc_t ios_prev_40;
+extern "C" const lv_img_dsc_t ios_next_40;
+extern "C" const lv_img_dsc_t ios_play_60;
+extern "C" const lv_img_dsc_t ios_pause_60;
+extern "C" const lv_img_dsc_t ios_music_60;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -87,6 +92,11 @@ const void *imgSplash = &splash;
 const void *imgOnOff = &ios_onoff_60;
 const void *imgSpeaker = &ios_speaker_60;
 const void *imgText = &ios_t_60;
+const void *imgPrev = &ios_prev_40;
+const void *imgNext = &ios_next_40;
+const void *imgPlay = &ios_play_60;
+const void *imgPause = &ios_pause_60;
+const void *imgMusic = &ios_music_60;
 
 int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
@@ -118,8 +128,8 @@ classDropDown dropDownOverlay = classDropDown();
 /*--------------------------- screen / lvgl relevant  -----------------------------*/
 
 // Change to your screen resolution
-static const uint16_t screenWidth = 320;
-static const uint16_t screenHeight = 480;
+static const uint16_t screenWidth = SCREEN_WIDTH;
+static const uint16_t screenHeight = SCREEN_HEIGHT;
 
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[screenWidth * 10];
@@ -143,25 +153,27 @@ void my_print(const char *buf)
 
 // publish Tile Event
 // {"screen":1, "tile":1, "type":"button", "event":"single" , "state":"on"}
-void publishTileEvent(int screenIdx, int tileIdx, bool state)
+void publishTileEvent(classTile *tPtr, const char *event)
 {
   StaticJsonDocument<128> json;
-  json["screen"] = screenIdx;
-  json["tile"] = tileIdx;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
   json["type"] = "button";
-  json["event"] = "single";
-  state == true ? json["state"] = "on" : json["state"] = "off";
+  json["event"] = event;
+  json["state"] = (tPtr->getState() == true) ? "on" : "off";
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
 // publish dropdown change Event
 // {"screen":1, "tile":1, "type":"dropdown", "event":"change" , "state":1}
-void publishDropDownEvent(int screenIdx, int tileIdx, int listIndex)
+void publishDropDownEvent(classTile *tPtr, int listIndex)
 {
   StaticJsonDocument<128> json;
-  json["screen"] = screenIdx;
-  json["tile"] = tileIdx;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
   json["type"] = "dropdown";
   json["event"] = "change";
   json["state"] = listIndex;
@@ -171,14 +183,29 @@ void publishDropDownEvent(int screenIdx, int tileIdx, int listIndex)
 
 // publish Level change Event
 // {"screen":1, "tile":1, "type":"level", "event":"change" , "state":50}
-void publishLevelEvent(int screenIdx, int tileIdx, const char *event, int value)
+void publishLevelEvent(classTile *tPtr, const char *event, int value)
 {
   StaticJsonDocument<128> json;
-  json["screen"] = screenIdx;
-  json["tile"] = tileIdx;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
   json["type"] = "level";
   json["event"] = event;
   json["state"] = value;
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
+// publish prev / next Event
+// {"screen":1, "tile":1, "type":"button", "event":"prev" }
+void publishPrevNextEvent(classTile *tPtr, const char *event)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
+  json["type"] = "button";
+  json["event"] = event;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -213,11 +240,8 @@ void publishMsgBoxClosedEvent(void)
 //{"backlight:" 50}
 void publishBackLightTelemetry(void)
 {
-  char payload[8];
-  sprintf(payload, "%d", _act_BackLight);
-
   StaticJsonDocument<32> json;
-  json["backlight"] = payload;
+  json["backlight"] = _act_BackLight;
   wt32.publishTelemetry(json.as<JsonVariant>());
 }
 
@@ -339,29 +363,29 @@ void defaultThemeColorConfig(int red, int green, int blue)
 void updateInfoText(void)
 {
   char buffer[40];
-  char buffer2[40];
 
-  lv_obj_t *_infoTextArea = screenSettings.getInfoPanel();
+  lv_obj_t *table = screenSettings.getInfoPanel();
+  lv_table_set_row_cnt(table,7);
+  lv_table_set_col_cnt(table, 2);
 
-  sprintf(buffer, "Name:\t%s\n", STRINGIFY(FW_NAME));
-  lv_textarea_set_text(_infoTextArea, buffer);
-  sprintf(buffer, "Maker:\t%s\n", STRINGIFY(FW_MAKER));
-  lv_textarea_add_text(_infoTextArea, buffer);
-  sprintf(buffer, "Version:\t%s\n", STRINGIFY(FW_VERSION));
-  lv_textarea_add_text(_infoTextArea, buffer);
-  lv_textarea_add_text(_infoTextArea, "\n");
+  lv_table_set_cell_value(table, 0, 0, "Name:");
+  lv_table_set_cell_value(table, 0, 1, STRINGIFY(FW_NAME));
+  lv_table_set_cell_value(table, 1, 0, "Maker:");
+  lv_table_set_cell_value(table, 1, 1, STRINGIFY(FW_MAKER));
+  lv_table_set_cell_value(table, 2, 0, "Version:");
+  lv_table_set_cell_value(table, 2, 1, STRINGIFY(FW_VERSION));
 
-  wt32.getMACAddressTxt(buffer2);
-  sprintf(buffer, "MAC:\t%s\n", buffer2);
-  lv_textarea_add_text(_infoTextArea, buffer);
+  lv_table_set_cell_value(table, 4, 0, "MAC:");
+  wt32.getMACAddressTxt(buffer);
+  lv_table_set_cell_value(table, 4, 1, buffer);
 
-  wt32.getIPAddressTxt(buffer2);
-  sprintf(buffer, "IP:\t%s\n", buffer2);
-  lv_textarea_add_text(_infoTextArea, buffer);
+  lv_table_set_cell_value(table, 5, 0, "IP:");
+  wt32.getIPAddressTxt(buffer);
+  lv_table_set_cell_value(table, 5, 1, buffer);
 
-  wt32.getMQTTTopicTxt(buffer2);
-  sprintf(buffer, "MQTT:\t%s\n", buffer2);
-  lv_textarea_add_text(_infoTextArea, buffer);
+  lv_table_set_cell_value(table, 6, 0, "MQTT:");
+  wt32.getMQTTTopicTxt(buffer);
+  lv_table_set_cell_value(table, 6, 1, buffer);
 }
 
 // check for changes in IP/MQTT connection and update warning sign in footer
@@ -391,22 +415,6 @@ void selectScreen(int screenIdx)
 
 /*--------------------------- Event Handler ------------------------------------*/
 
-// WipeEvent Handler
-static void wipeEventHandler(lv_event_t *e)
-{
-  lv_dir_t dir = lv_indev_get_gesture_dir(myInputDevice);
- 
-  switch (dir)
-  {
-  case LV_DIR_LEFT:
-    screenVault.showNext(lv_scr_act());
-    break;
-  case LV_DIR_RIGHT:
-    screenVault.showPrev(lv_scr_act());
-    break;
-  }
-}
-
 // screen event handler
 // detects unload and load
 void screenEventHandler(lv_event_t *e)
@@ -415,16 +423,12 @@ void screenEventHandler(lv_event_t *e)
   if (code == LV_EVENT_SCREEN_UNLOAD_START)
   {
     classScreen *sPtr = (classScreen *)lv_event_get_user_data(e);
-    int screenIdx = sPtr->screenIdx;
-    printf("Screen UNLOAD Event received: Screen : %d\n", screenIdx);
-    publishScreenEvent(screenIdx, "unloaded");
+    publishScreenEvent(sPtr->screenIdx, "unloaded");
   }
   if (code == LV_EVENT_SCREEN_LOADED)
   {
     classScreen *sPtr = (classScreen *)lv_event_get_user_data(e);
-    int screenIdx = sPtr->screenIdx;
-    printf("Screen LOAD Event received: Screen : %d\n", screenIdx);
-    publishScreenEvent(screenIdx, "loaded");
+    publishScreenEvent(sPtr->screenIdx, "loaded");
   }
 }
 
@@ -437,42 +441,43 @@ void msgBoxClosedEventHandler(lv_event_t *e)
 }
 
 // Up / Down Button Event Handler
-static void upDownEventHandler(lv_event_t *e, int direction)
+static void upDownEventHandler(lv_event_t *e)
 {
   lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *btn = lv_event_get_target(e);
+
   if ((code == LV_EVENT_SHORT_CLICKED) || (code == LV_EVENT_LONG_PRESSED) || (code == LV_EVENT_LONG_PRESSED_REPEAT))
   {
     // short increments 1; long increments 5
-    int inc = 0;
-    if (code == LV_EVENT_SHORT_CLICKED) { inc = 1; }
-    else                                { inc = 5; }
-    inc *= direction;
+    int increment = (code == LV_EVENT_SHORT_CLICKED) ? 1 : 5;
+    int direction = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? 1 : -1;
+    increment *= direction;
     // get tile* of clicked tile from USER_DATA
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
     int level = tPtr->getLevel();
     // calc new value and limit to 0...100
-    level += inc;
+    level += increment;
     if (level > 100) level = 100;
-    if (level < 0)   level = 0;
+    if (level < 0) level = 0;
     tPtr->setLevel(level, true);
     tPtr->showOvlBar(level);
     // send event
-    tileId_t tileId = tPtr->getId();
-//    printf("screen:%d  tile:%d  level:%d\n", tileId.idx.screen, tileId.idx.tile, level);
-    publishLevelEvent(tileId.idx.screen, tileId.idx.tile, "change", level);
+    publishLevelEvent(tPtr, "change", level);
   }
 }
 
-// Up  Button Event Handler
-static void upButtonEventHandler(lv_event_t *e)
+// previous/next event handler
+static void prevNextEventHandler(lv_event_t *e)
 {
-  upDownEventHandler(e, +1);
-}
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *btn = lv_event_get_target(e);
 
-// Down  Button Event Handler
-static void downButtonEventHandler(lv_event_t *e)
-{
-  upDownEventHandler(e, -1);
+  if (code == LV_EVENT_SHORT_CLICKED)
+  {
+    const char *event = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? "prev" : "next";
+    classTile *tPtr = (classTile *)lv_event_get_user_data(e);
+    publishPrevNextEvent(tPtr, event);
+  }
 }
 
 // drop down event handler
@@ -484,77 +489,88 @@ static void dropDownEventHandler(lv_event_t *e)
   if (code == LV_EVENT_CANCEL)
   {
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
-    tileId_t tileId = tPtr->getId();
-    int screenIdx = tileId.idx.screen;
-    int tileIdx = tileId.idx.tile;
     char buf[64];
     lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
     int listIndex = lv_dropdown_get_selected(obj) + 1;
-    printf("DropDown Event received : Screen: %d; Tile: %d; State: %s\n", screenIdx, tileIdx, buf);
-    publishDropDownEvent(screenIdx, tileIdx, listIndex);
+    publishDropDownEvent(tPtr, listIndex);
     tPtr->setIconText(buf);
     tPtr->setDropDownIndex(listIndex);
     dropDownOverlay.close();
   }
 }
 
-// Tile Event Handler
+// screen select drop down Event Handler
+static void screenDropDownEventHandler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *obj = lv_event_get_target(e);
+  if (code == LV_EVENT_CANCEL) 
+  {
+    int listIndex = lv_dropdown_get_selected(obj);
+    screenVault.showByIndex(listIndex);
+    dropDownOverlay.close();
+  }
+}
+
+// general Tile Event Handler
 static void tileEventHandler(lv_event_t *e)
 {
   lv_event_code_t code = lv_event_get_code(e);
 
-  if (code == LV_EVENT_SHORT_CLICKED)
+  if ((code == LV_EVENT_SHORT_CLICKED) || (code == LV_EVENT_LONG_PRESSED))
   {
     // get tile* of clicked tile from USER_DATA
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
     tileId_t tileId = tPtr->getId();
-    int screenIdx = tileId.idx.screen;
-    int tileIdx = tileId.idx.tile;
     int linkedScreen = tPtr->getLink();
-    bool state = tPtr->getState();
-    printf("Click Event received: Screen : %d; Tile : %d; Link : %d; State : %d\n", screenIdx, tileIdx, linkedScreen, state);
-    // button has link -> call linked screen
-    if (linkedScreen > 0)
+    if (code == LV_EVENT_SHORT_CLICKED)
     {
-      screenVault.show(linkedScreen);
+      // button has link -> call linked screen
+      if (linkedScreen > 0)
+      {
+        screenVault.show(linkedScreen);
+      }
+      // button is type DROPDOWN -> show drop down overlay
+      else if (tPtr->getType() == DROPDOWN)
+      {
+        dropDownOverlay = classDropDown(tPtr, dropDownEventHandler);
+        dropDownOverlay.open();
+      }
+      //  publish click event
+      else
+      {
+        publishTileEvent(tPtr, "single");
+      }
     }
-    // button is type DROPDOWN -> show drop down overlay
-    else if (tPtr->getType() == DROPDOWN)
-    {
-      dropDownOverlay = classDropDown(tPtr, dropDownEventHandler);
-      dropDownOverlay.open();
-    }
-    //  publish click event
+    // long press detected
     else
     {
-      publishTileEvent(screenIdx, tileIdx, state);
+      publishTileEvent(tPtr, "hold");
     }
-  }
-
-  if (code == LV_EVENT_LONG_PRESSED)
-  {
-    // use internal and call pop-up
   }
 }
 
 // screen footer button Event handler
-//    HomeButton short  -> displays Home screen
-//    SettingsButton    -> displays Settings
+//    HomeButton            -> displays Home screen
+//    SettingsButton        -> displays Settings
+//    Center Button (label) -> show screen select drop down
 static void footerButtonEventHandler(lv_event_t *e)
 {
   lv_event_code_t event = lv_event_get_code(e);
   lv_obj_t *ta = lv_event_get_target(e);
   if (event == LV_EVENT_SHORT_CLICKED)
   {
-    // left side clicked -> HomeButton
-    if (ta->coords.x1 < 160)
+    if (lv_obj_has_flag(ta, LV_OBJ_FLAG_USER_1))  screenVault.show(SCREEN_HOME);
+    if (lv_obj_has_flag(ta, LV_OBJ_FLAG_USER_3))  screenVault.show(SCREEN_SETTINGS);
+    if (lv_obj_has_flag(ta, LV_OBJ_FLAG_USER_2))
     {
-      screenVault.show(SCREEN_HOME);
-    }
-    // right side clicked -> SettingsButton
-    else
-    {
-      screenVault.show(SCREEN_SETTINGS);
+      dropDownOverlay = classDropDown(NULL, screenDropDownEventHandler);
+      char buf[256];
+      int index = screenVault.makeDropDownList(buf, lv_scr_act()) + 1;
+      dropDownOverlay.setDropDownList(buf);
+      dropDownOverlay.setDropDownIndex(index);
+      dropDownOverlay.setDropDownLabel("Select Screen");
+      dropDownOverlay.open();
     }
   }
 }
@@ -600,7 +616,6 @@ void createScreen(int screenIdx)
   classScreen &ref = screenVault.add(screenIdx, 1);
   ref.createHomeButton(footerButtonEventHandler, imgHome);
   ref.createSettingsButton(footerButtonEventHandler, imgSettings);
-  ref.adWipeEventHandler(wipeEventHandler);
   ref.adScreenEventHandler(screenEventHandler);
   // sort screenIdx in ascending order
   screenVault.sort();
@@ -630,11 +645,17 @@ const void *getIconFromType(int tileType)
   case LIGHT:
     img = imgBulb;
     break;
+  case MUSIC:
+    img = imgMusic;
+    break;
   case NUMBER:
     img = NULL;
     break;
   case ONOFF:
     img = imgOnOff;
+    break;
+  case PLAYER:
+    img = imgPlay;
     break;
   case ROOM:
     img = imgRoom;
@@ -658,10 +679,50 @@ const void *getIconFromType(int tileType)
   return img;
 }
 
-/*
- * Create any tile on any screen
- */
-void createTile(int tileType, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen, bool enOnTileLevelControl)
+// type list for config
+void createInputTypeEnum(JsonObject parent)
+{
+  JsonArray typeEnum = parent.createNestedArray("enum");
+
+  typeEnum.add("blind");
+  typeEnum.add("coffee");
+  typeEnum.add("door");
+  typeEnum.add("dropdown");
+  typeEnum.add("light");
+  typeEnum.add("music");
+  typeEnum.add("number");
+  typeEnum.add("onoff");
+  typeEnum.add("player");
+  typeEnum.add("room");
+  typeEnum.add("speaker");
+  typeEnum.add("text");
+  typeEnum.add("thermometer");
+  typeEnum.add("window");
+}
+
+// decode type from input
+int parseInputType(const char *inputType)
+{
+  if (strcmp(inputType, "blind") == 0)        { return BLIND; }
+  if (strcmp(inputType, "coffee") == 0)       { return COFFEE; }
+  if (strcmp(inputType, "door") == 0)         { return DOOR; }
+  if (strcmp(inputType, "dropdown") == 0)     { return DROPDOWN; }
+  if (strcmp(inputType, "light") == 0)        { return LIGHT; }
+  if (strcmp(inputType, "number") == 0)       { return NUMBER; }
+  if (strcmp(inputType, "music") == 0)        { return MUSIC; }
+  if (strcmp(inputType, "onoff") == 0)        { return ONOFF; }
+  if (strcmp(inputType, "player") == 0)       { return PLAYER; }
+  if (strcmp(inputType, "room") == 0)         { return ROOM; }
+  if (strcmp(inputType, "speaker") == 0)      { return SPEAKER; }
+  if (strcmp(inputType, "text") == 0)         { return TEXT; }
+  if (strcmp(inputType, "thermometer") == 0)  { return THERMOMETER; }
+  if (strcmp(inputType, "window") == 0)       { return WINDOW; }
+
+  return NONE;
+}
+
+// Create any tile on any screen
+void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen, bool enOnTileLevelControl)
 {
   const void *img;
   // exit if screen or tile out of range
@@ -672,9 +733,9 @@ void createTile(int tileType, int screenIdx, int tileIdx, const char *label, boo
   }
   // TODO check if entry to be deleted
   // Deletion of tiles via config not defined yet, requires reboot
-  if (tileType == NONE)
-  {
-  };
+  // if (tileType == NONE)
+  // {
+  // };
 
   // create screen if not exist
   createScreen(screenIdx);
@@ -683,12 +744,13 @@ void createTile(int tileType, int screenIdx, int tileIdx, const char *label, boo
   tileVault.remove(screenIdx, tileIdx);
 
   // set icon tileType dependent
+  int tileType = parseInputType(typeStr);
   img = getIconFromType(tileType);
 
-  // create new Tile
+  // create new Tile parseInputType(json["type"])
   classTile &ref = tileVault.add();
   ref.begin(screenVault.get(screenIdx)->container, img, label);
-  ref.registerTile(screenIdx, tileIdx, tileType);
+  ref.registerTile(screenIdx, tileIdx, tileType, typeStr);
 
   // handle icons depending on tileType capabilities
   if (linkedScreen)
@@ -707,7 +769,7 @@ void createTile(int tileType, int screenIdx, int tileIdx, const char *label, boo
   // enable on-tile level control
   if (enOnTileLevelControl)
   {
-    ref.addLevelControl(downButtonEventHandler, upButtonEventHandler);
+    ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
   }
 
   // enable drop down
@@ -715,44 +777,13 @@ void createTile(int tileType, int screenIdx, int tileIdx, const char *label, boo
   {
     ref.setDropDownIndicator() ;
   }
-}
 
-// type list for config
-void createInputTypeEnum(JsonObject parent)
-{
-  JsonArray typeEnum = parent.createNestedArray("enum");
-
-  typeEnum.add("blind");
-  typeEnum.add("coffee");
-  typeEnum.add("door");
-  typeEnum.add("dropdown");
-  typeEnum.add("light");
-  typeEnum.add("number");
-  typeEnum.add("onoff");
-  typeEnum.add("room");
-  typeEnum.add("speaker");
-  typeEnum.add("text");
-  typeEnum.add("thermometer");
-  typeEnum.add("window");
-}
-
-// decode type from input
-int parseInputType(const char *inputType)
-{
-  if (strcmp(inputType, "blind") == 0)        { return BLIND; }
-  if (strcmp(inputType, "coffee") == 0)       { return COFFEE; }
-  if (strcmp(inputType, "door") == 0)         { return DOOR; }
-  if (strcmp(inputType, "dropdown") == 0)     { return DROPDOWN; }
-  if (strcmp(inputType, "light") == 0)        { return LIGHT; }
-  if (strcmp(inputType, "number") == 0)       { return NUMBER; };
-  if (strcmp(inputType, "onoff") == 0)        { return ONOFF; };
-  if (strcmp(inputType, "room") == 0)         { return ROOM; }
-  if (strcmp(inputType, "speaker") == 0)      { return SPEAKER; }
-  if (strcmp(inputType, "text") == 0)         { return TEXT; }
-  if (strcmp(inputType, "thermometer") == 0)  { return THERMOMETER; }
-  if (strcmp(inputType, "window") == 0)       { return WINDOW; }
-
-  return NONE;
+  // enable mini player
+  if (tileType == PLAYER)
+  {
+    ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
+    ref.setIconForStateOn(imgPause);
+  }
 }
 
 /**
@@ -805,7 +836,7 @@ void jsonTilesConfig(int screenIdx, JsonVariant json)
     return;
   }
 
-  createTile(parseInputType(json["type"]), screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"]);
+  createTile(json["type"], screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"]);
 }
 
 void jsonConfig(JsonVariant json)
@@ -1158,7 +1189,6 @@ void ui_init(void)
   screenSettings = classScreenSettings(ref.screen, imgAustin);
   screenSettings.addEventHandler(backLightSliderEventHandler);
   ref.createHomeButton(footerButtonEventHandler, imgHome);
-  ref.adWipeEventHandler(wipeEventHandler);
   ref.adScreenEventHandler(screenEventHandler);
   ref.setLabel("Settings");
 
@@ -1219,7 +1249,7 @@ lv_log_register_print_cb(my_print); // register print function for debugging
   indev_drv.type = LV_INDEV_TYPE_POINTER;
   indev_drv.read_cb = my_touchpad_read;
   myInputDevice = lv_indev_drv_register(&indev_drv);
-  // set timings for LongPress ,RepeatTime and swipe detect
+  // set timings for LongPress ,RepeatTime and gesture detect
   indev_drv.long_press_time = 500;
   indev_drv.long_press_repeat_time = 200;
   indev_drv.gesture_limit = 40;
@@ -1252,7 +1282,6 @@ lv_log_register_print_cb(my_print); // register print function for debugging
 */
 void loop()
 {
-
   // Let WT32 hardware handle any events etc
   wt32.loop();
   updateConnectionStatus();

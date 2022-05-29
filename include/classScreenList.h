@@ -1,11 +1,13 @@
 ﻿#pragma once
 #include <lvgl.h>
 #include <classScreen.h>
-
+#include <list>
+#include <algorithm>
 class classScreenList
 {
 private:
- 
+  std::list<classScreen>::iterator it;
+
 public:
   classScreenList(void){};
   classScreen &add(int screenIdx, int style);
@@ -18,5 +20,7 @@ public:
   bool show(int screenIdx);
   void showPrev(lv_obj_t* screenObj);
   void showNext(lv_obj_t* screenObj);
+  void showByIndex(int index);
+  int makeDropDownList(char *list, lv_obj_t *screenObj);
   int getSize(void);
 };

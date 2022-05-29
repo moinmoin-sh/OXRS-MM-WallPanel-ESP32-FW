@@ -8,8 +8,6 @@ extern lv_color_t colorBg;
 
 // grid definitions
 // sub screens 3 x 2 + home button
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 480
 #define FOOTER_HEIGHT 25
 #define COLS_2X3 2
 #define ROWS_2X3 3
@@ -39,12 +37,9 @@ classScreen::classScreen(int number, int style)
     lv_obj_set_style_pad_left(cont, 2, 0);
     lv_obj_set_grid_dsc_array(cont, colDsc_2X3, rowDsc_2X3);
 
-    lv_obj_add_flag(cont, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(cont, LV_OBJ_FLAG_PRESS_LOCK);
-
     container = cont;
   }
-  // placeholder for swipe detection
+  // middle "button" for screen selection drop down
   _btnFooter = lv_imgbtn_create(screen);
   lv_imgbtn_set_src(_btnFooter, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
   lv_obj_set_size(_btnFooter, 200, 40);
@@ -70,6 +65,11 @@ void classScreen::setLabel(const char *labelText)
   lv_label_set_text(_label, labelText);
 }
 
+const char *classScreen::getLabel(void)
+{
+  return lv_label_get_text(_label);
+}
+
 void classScreen::updateBgColor(void)
 {
   lv_obj_set_style_bg_color(screen, colorBg, LV_PART_MAIN);
@@ -82,10 +82,15 @@ void classScreen::createHomeButton(lv_event_cb_t callBack, const void *img)
   lv_obj_set_style_bg_opa(_btnHome, 0, LV_STATE_DEFAULT);
   lv_obj_align(_btnHome, LV_ALIGN_BOTTOM_LEFT, 0, 0);
   lv_obj_clear_flag(_btnHome, LV_OBJ_FLAG_PRESS_LOCK);
+  lv_obj_add_flag(_btnHome, LV_OBJ_FLAG_USER_1);
+  lv_obj_add_event_cb(_btnHome, callBack, LV_EVENT_ALL, this);
   _btnHomeImg = lv_img_create(screen);
   lv_img_set_src(_btnHomeImg, img);
   lv_obj_align(_btnHomeImg, LV_ALIGN_BOTTOM_LEFT, 15, -6);
-  lv_obj_add_event_cb(_btnHome, callBack, LV_EVENT_ALL, this);
+
+  // set call back for center button
+  lv_obj_add_flag(_btnFooter, LV_OBJ_FLAG_USER_2);
+  lv_obj_add_event_cb(_btnFooter, callBack, LV_EVENT_ALL, this);
 }
 
 void classScreen::createSettingsButton(lv_event_cb_t callBack, const void *img)
@@ -95,6 +100,7 @@ void classScreen::createSettingsButton(lv_event_cb_t callBack, const void *img)
   lv_obj_set_style_bg_opa(_btnSettings, 0, LV_STATE_DEFAULT);
   lv_obj_align(_btnSettings, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
   lv_obj_clear_flag(_btnSettings, LV_OBJ_FLAG_PRESS_LOCK);
+  lv_obj_add_flag(_btnSettings, LV_OBJ_FLAG_USER_3);
   lv_obj_add_event_cb(_btnSettings, callBack, LV_EVENT_ALL, this);
   _btnSettingsImg = lv_img_create(screen);
   lv_img_set_src(_btnSettingsImg, img);
@@ -113,13 +119,6 @@ void classScreen::showConnectionStatus(bool connected)
     lv_obj_set_style_text_color(_labelWarning, lv_color_make(180, 100, 10), 0);
     lv_label_set_text(_labelWarning, LV_SYMBOL_WARNING);
   }
-}
-
-void classScreen::adWipeEventHandler(lv_event_cb_t callBack)
-{
-  //    lv_obj_set_gesture_parent(_btnFooter, false);
-  lv_obj_clear_flag(_btnFooter, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  lv_obj_add_event_cb(_btnFooter, callBack, LV_EVENT_GESTURE, this);
 }
 
 void classScreen::adScreenEventHandler(lv_event_cb_t callBack)

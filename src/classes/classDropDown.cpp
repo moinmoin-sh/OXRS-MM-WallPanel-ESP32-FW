@@ -4,10 +4,8 @@
 extern lv_color_t colorOn;
 extern lv_color_t colorBg;
 
-classDropDown::classDropDown(classTile* tile, lv_event_cb_t dropDownEventHandler)
+void classDropDown::_createDropDown(void)
 {
-  _callingTile = tile;
-
   // full screen overlay / semi transparent
   ovlPanel = lv_obj_create(lv_scr_act());
   lv_obj_remove_style_all(ovlPanel);
@@ -58,14 +56,23 @@ classDropDown::classDropDown(classTile* tile, lv_event_cb_t dropDownEventHandler
   lv_obj_set_style_radius(list, 5, LV_PART_SELECTED);
   lv_obj_set_style_bg_color(list, colorOn, LV_PART_SELECTED | LV_STATE_PRESSED);
   lv_obj_set_style_bg_color(list, colorOn, LV_PART_SELECTED | LV_STATE_CHECKED);
+}
 
-  // update with variables from calling tile
-  lv_dropdown_set_text(_dropDown, _callingTile->getDropDownLabel());
-  lv_dropdown_set_options(_dropDown, _callingTile->getDropDownList());
-  int index = _callingTile->getDropDownIndex();
-  if (index > 0) index--;
-  lv_dropdown_set_selected(_dropDown, index );
+classDropDown::classDropDown(classTile *tile, lv_event_cb_t dropDownEventHandler)
+{
+  // layout the drop down overlay
+  _createDropDown();
 
+  if(tile)
+  {
+    _callingTile = tile;
+    // update with variables from calling tile
+    lv_dropdown_set_text(_dropDown, _callingTile->getDropDownLabel());
+    lv_dropdown_set_options(_dropDown, _callingTile->getDropDownList());
+    int index = _callingTile->getDropDownIndex();
+    if (index > 0) index--;
+    lv_dropdown_set_selected(_dropDown, index);
+  }
   // add event handler
   lv_obj_add_event_cb(_dropDown, dropDownEventHandler, LV_EVENT_ALL, _callingTile);
 }
@@ -92,6 +99,12 @@ void classDropDown::setDropDownList(const char* list)
 void classDropDown::setDropDownIndex(uint16_t index)
 {
   lv_dropdown_set_selected(_dropDown, index - 1);
+}
+
+// set drop down label (selector)- replaces selectedItem
+void classDropDown::setDropDownLabel(const char *label)
+{
+  lv_dropdown_set_text(_dropDown, label);
 }
 
 // get reference of calling tile

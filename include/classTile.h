@@ -24,10 +24,12 @@ protected:
   int _screenIdx = 0;
   int _tileIdx = 0;
   int _type = 0;
+  char _typeStr[16];
   int _linkedScreen = 0;
   bool _state = false;
   int _level = 0;
   const void *_img = NULL;
+  const void *_imgOn = NULL;
   uint16_t _dropDownIndex = 0;
 
   void _button(lv_obj_t *parent, const void *img);
@@ -44,7 +46,7 @@ public :
   ~classTile();
 
   void begin(lv_obj_t *parent, const void *img, const char *labelText);
-  void registerTile(int screenIdx, int tileIdx, int type);
+  void registerTile(int screenIdx, int tileIdx, int type, const char* typeStr);
   void setLabel(const char *labelText);
   void setSubLabel(const char *subLabelText);
   void setState(bool state);
@@ -53,11 +55,15 @@ public :
   void setColorToDefault(void);
   void setNumber(const char *number, const char *units);
   void setLink(int linkedScreen);
+  void setIconForStateOn(const void* imgStateOn);
   void setIconText(const char *iconText);
 
   int getLink(void);
   tileId_t getId(void);
+  int getScreenIdx(void);
+  int getTileIdx(void);
   int getType(void);
+  const char* getTypeStr(void);
   bool getState(void);
   char *getLabel(void);
   
@@ -66,8 +72,8 @@ public :
   void setLevel(int level, bool force);
   int getLevel(void);
   void showOvlBar(int level);
-  void addLevelControl(lv_event_cb_t downButtonCallBack, lv_event_cb_t upButtonCallBack);
-
+  void addUpDownControl(lv_event_cb_t upDownEventHandler, const void* imgUpperButton, const void* imgLowerButton);
+ 
   void setDropDownList(const char *list);
   void setDropDownIndex(uint16_t index);
   void setDropDownLabel(const char *label);

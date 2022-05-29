@@ -1,6 +1,4 @@
 ﻿#include "classScreenList.h"
-#include <list>
-#include <algorithm>
 
 using std::list;
 
@@ -15,7 +13,6 @@ classScreen &classScreenList::add(int screenIdx, int style)
 
 classScreen *classScreenList::get(int screenIdx)
 {
-  std::list<classScreen>::iterator it;
   it = std::find_if(std::begin(_listScreens), std::end(_listScreens),
                     [&](classScreen const &p)
                     { return p.screenIdx == screenIdx; });
@@ -31,7 +28,7 @@ classScreen *classScreenList::get(int screenIdx)
 
 classScreen *classScreenList::getStart(void)
 {
-  std::list<classScreen>::iterator it = _listScreens.begin();
+  it = _listScreens.begin();
   if (it == _listScreens.end())
   {
     return NULL;
@@ -44,7 +41,6 @@ classScreen *classScreenList::getStart(void)
 
 classScreen *classScreenList::getNext(int screenIdx)
 {
-  std::list<classScreen>::iterator it;
   it = std::find_if(std::begin(_listScreens), std::end(_listScreens),
                     [&](classScreen const &p)
                     { return p.screenIdx == screenIdx; });
@@ -62,7 +58,6 @@ classScreen *classScreenList::getNext(int screenIdx)
 
 bool classScreenList::exist(int screenIdx)
 {
-  std::list<classScreen>::iterator it;
   it = std::find_if(std::begin(_listScreens), std::end(_listScreens),
                     [&](classScreen const &p)
                     { return p.screenIdx == screenIdx; });
@@ -86,8 +81,6 @@ void classScreenList::remove(int screenIdx)
 // sort screen list in ascending order
 void classScreenList::sort(void)
 {
-//    bool cmp(const Type1 & a, const Type2 & b);
-//    _listScreens.sort( compareScreens);
 _listScreens.sort(
     [&](classScreen const &p1, classScreen const &p2)
     { return p1.screenIdx < p2.screenIdx; });
@@ -103,14 +96,13 @@ bool classScreenList::show(int screenIdx)
   }
   else
   {
-      return false;
+    return false;
   }
 }
 
 // show previous screen in list 
 void classScreenList::showPrev(lv_obj_t* screenObj)
 {
-  std::list<classScreen>::iterator it;
   it = std::find_if(std::begin(_listScreens), std::end(_listScreens),
       [&](classScreen const& p)
       { return p.screen == screenObj; });
@@ -122,7 +114,6 @@ void classScreenList::showPrev(lv_obj_t* screenObj)
 // show next screen in list
 void classScreenList::showNext(lv_obj_t* screenObj)
 {
-  std::list<classScreen>::iterator it;
   it = std::find_if(std::begin(_listScreens), std::end(_listScreens),
       [&](classScreen const& p)
       { return p.screen == screenObj; });
@@ -131,8 +122,38 @@ void classScreenList::showNext(lv_obj_t* screenObj)
   show(it->screenIdx);
 }
 
+void classScreenList::showByIndex(int index)
+{
+  it = std::begin(_listScreens);
+  while (index--)
+  {
+    it++;
+  }
+  lv_disp_load_scr(it->screen);
+}
+
 // return size from list
 int classScreenList::getSize(void)
 {
   return _listScreens.size();
+}
+
+// make list to show available screens in drop down
+// return drop down list index of current screen
+int classScreenList::makeDropDownList(char *list, lv_obj_t *screenObj)
+{
+  int i = 0;
+  int retVal = 0;
+  list[0] = 0;
+  it = std::begin(_listScreens);
+  strcat(list, it->getLabel());
+  while (++it != _listScreens.end())
+  {
+    strcat(list, "\n");
+    strcat(list, it->getLabel());
+    i++;
+    if (it->screen == screenObj) retVal = i;
+  }
+
+  return retVal;
 }
