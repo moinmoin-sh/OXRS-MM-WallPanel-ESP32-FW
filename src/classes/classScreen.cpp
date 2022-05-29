@@ -37,12 +37,9 @@ classScreen::classScreen(int number, int style)
     lv_obj_set_style_pad_left(cont, 2, 0);
     lv_obj_set_grid_dsc_array(cont, colDsc_2X3, rowDsc_2X3);
 
-    lv_obj_add_flag(cont, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(cont, LV_OBJ_FLAG_PRESS_LOCK);
-
     container = cont;
   }
-  // placeholder for swipe detection
+  // middle "button" for screen selection drop down
   _btnFooter = lv_imgbtn_create(screen);
   lv_imgbtn_set_src(_btnFooter, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
   lv_obj_set_size(_btnFooter, 200, 40);
@@ -85,12 +82,13 @@ void classScreen::createHomeButton(lv_event_cb_t callBack, const void *img)
   lv_obj_set_style_bg_opa(_btnHome, 0, LV_STATE_DEFAULT);
   lv_obj_align(_btnHome, LV_ALIGN_BOTTOM_LEFT, 0, 0);
   lv_obj_clear_flag(_btnHome, LV_OBJ_FLAG_PRESS_LOCK);
+  lv_obj_add_flag(_btnHome, LV_OBJ_FLAG_USER_1);
+  lv_obj_add_event_cb(_btnHome, callBack, LV_EVENT_ALL, this);
   _btnHomeImg = lv_img_create(screen);
   lv_img_set_src(_btnHomeImg, img);
   lv_obj_align(_btnHomeImg, LV_ALIGN_BOTTOM_LEFT, 15, -6);
-  lv_obj_add_flag(_btnHome, LV_OBJ_FLAG_USER_1);
-  lv_obj_add_event_cb(_btnHome, callBack, LV_EVENT_ALL, this);
 
+  // set call back for center button
   lv_obj_add_flag(_btnFooter, LV_OBJ_FLAG_USER_2);
   lv_obj_add_event_cb(_btnFooter, callBack, LV_EVENT_ALL, this);
 }
@@ -121,13 +119,6 @@ void classScreen::showConnectionStatus(bool connected)
     lv_obj_set_style_text_color(_labelWarning, lv_color_make(180, 100, 10), 0);
     lv_label_set_text(_labelWarning, LV_SYMBOL_WARNING);
   }
-}
-
-void classScreen::adWipeEventHandler(lv_event_cb_t callBack)
-{
-  //    lv_obj_set_gesture_parent(_btnFooter, false);
-//  lv_obj_clear_flag(_btnFooter, LV_OBJ_FLAG_GESTURE_BUBBLE);
-//  lv_obj_add_event_cb(_btnFooter, callBack, LV_EVENT_GESTURE, this);
 }
 
 void classScreen::adScreenEventHandler(lv_event_cb_t callBack)

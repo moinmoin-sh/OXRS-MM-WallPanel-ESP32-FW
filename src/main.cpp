@@ -240,11 +240,8 @@ void publishMsgBoxClosedEvent(void)
 //{"backlight:" 50}
 void publishBackLightTelemetry(void)
 {
-  char payload[8];
-  sprintf(payload, "%d", _act_BackLight);
-
   StaticJsonDocument<32> json;
-  json["backlight"] = payload;
+  json["backlight"] = _act_BackLight;
   wt32.publishTelemetry(json.as<JsonVariant>());
 }
 
@@ -418,22 +415,6 @@ void selectScreen(int screenIdx)
 
 /*--------------------------- Event Handler ------------------------------------*/
 
-// WipeEvent Handler
-static void wipeEventHandler(lv_event_t *e)
-{
-  lv_dir_t dir = lv_indev_get_gesture_dir(myInputDevice);
- 
-  switch (dir)
-  {
-  case LV_DIR_LEFT:
-    screenVault.showNext(lv_scr_act());
-    break;
-  case LV_DIR_RIGHT:
-    screenVault.showPrev(lv_scr_act());
-    break;
-  }
-}
-
 // screen event handler
 // detects unload and load
 void screenEventHandler(lv_event_t *e)
@@ -442,16 +423,12 @@ void screenEventHandler(lv_event_t *e)
   if (code == LV_EVENT_SCREEN_UNLOAD_START)
   {
     classScreen *sPtr = (classScreen *)lv_event_get_user_data(e);
-    int screenIdx = sPtr->screenIdx;
-    printf("Screen UNLOAD Event received: Screen : %d\n", screenIdx);
-    publishScreenEvent(screenIdx, "unloaded");
+    publishScreenEvent(sPtr->screenIdx, "unloaded");
   }
   if (code == LV_EVENT_SCREEN_LOADED)
   {
     classScreen *sPtr = (classScreen *)lv_event_get_user_data(e);
-    int screenIdx = sPtr->screenIdx;
-    printf("Screen LOAD Event received: Screen : %d\n", screenIdx);
-    publishScreenEvent(screenIdx, "loaded");
+    publishScreenEvent(sPtr->screenIdx, "loaded");
   }
 }
 
@@ -515,7 +492,6 @@ static void dropDownEventHandler(lv_event_t *e)
     char buf[64];
     lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
     int listIndex = lv_dropdown_get_selected(obj) + 1;
-//    printf("DropDown Event received : Screen: %d; Tile: %d; State: %s\n", screenIdx, tileIdx, buf);
     publishDropDownEvent(tPtr, listIndex);
     tPtr->setIconText(buf);
     tPtr->setDropDownIndex(listIndex);
@@ -523,6 +499,7 @@ static void dropDownEventHandler(lv_event_t *e)
   }
 }
 
+// screen select drop down Event Handler
 static void screenDropDownEventHandler(lv_event_t *e)
 {
   lv_event_code_t code = lv_event_get_code(e);
@@ -535,7 +512,7 @@ static void screenDropDownEventHandler(lv_event_t *e)
   }
 }
 
-// Tile Event Handler
+// general Tile Event Handler
 static void tileEventHandler(lv_event_t *e)
 {
   lv_event_code_t code = lv_event_get_code(e);
@@ -574,8 +551,9 @@ static void tileEventHandler(lv_event_t *e)
 }
 
 // screen footer button Event handler
-//    HomeButton short  -> displays Home screen
-//    SettingsButton    -> displays Settings
+//    HomeButton            -> displays Home screen
+//    SettingsButton        -> displays Settings
+//    Center Button (label) -> show screen select drop down
 static void footerButtonEventHandler(lv_event_t *e)
 {
   lv_event_code_t event = lv_event_get_code(e);
@@ -638,7 +616,6 @@ void createScreen(int screenIdx)
   classScreen &ref = screenVault.add(screenIdx, 1);
   ref.createHomeButton(footerButtonEventHandler, imgHome);
   ref.createSettingsButton(footerButtonEventHandler, imgSettings);
-  ref.adWipeEventHandler(wipeEventHandler);
   ref.adScreenEventHandler(screenEventHandler);
   // sort screenIdx in ascending order
   screenVault.sort();
@@ -1212,7 +1189,6 @@ void ui_init(void)
   screenSettings = classScreenSettings(ref.screen, imgAustin);
   screenSettings.addEventHandler(backLightSliderEventHandler);
   ref.createHomeButton(footerButtonEventHandler, imgHome);
-  ref.adWipeEventHandler(wipeEventHandler);
   ref.adScreenEventHandler(screenEventHandler);
   ref.setLabel("Settings");
 
@@ -1273,7 +1249,7 @@ lv_log_register_print_cb(my_print); // register print function for debugging
   indev_drv.type = LV_INDEV_TYPE_POINTER;
   indev_drv.read_cb = my_touchpad_read;
   myInputDevice = lv_indev_drv_register(&indev_drv);
-  // set timings for LongPress ,RepeatTime and swipe detect
+  // set timings for LongPress ,RepeatTime and gesture detect
   indev_drv.long_press_time = 500;
   indev_drv.long_press_repeat_time = 200;
   indev_drv.gesture_limit = 40;
