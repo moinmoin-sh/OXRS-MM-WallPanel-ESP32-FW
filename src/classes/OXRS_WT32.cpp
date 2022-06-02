@@ -83,6 +83,9 @@ void _getSystemJson(JsonVariant json)
 
   system["fileSystemUsedBytes"] = SPIFFS.usedBytes();
   system["fileSystemTotalBytes"] = SPIFFS.totalBytes();
+
+  system["availablePsRamBytes"] = ESP.getPsramSize();
+  system["freePsRamBytes"] = ESP.getFreePsram();
 }
 
 void _getNetworkJson(JsonVariant json)
