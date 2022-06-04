@@ -18,7 +18,8 @@ enum tileType_t
   SPEAKER,
   TEXT,
   THERMOMETER,
-  WINDOW
+  WINDOW,
+  THREEDPRINT
 };
 
 #define WP_OPA_BG_OFF     26
