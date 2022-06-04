@@ -74,6 +74,7 @@ extern "C" const lv_img_dsc_t ios_next_40;
 extern "C" const lv_img_dsc_t ios_play_60;
 extern "C" const lv_img_dsc_t ios_pause_60;
 extern "C" const lv_img_dsc_t ios_music_60;
+extern "C" const lv_img_dsc_t ios_3dprint_60;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -97,6 +98,7 @@ const void *imgNext = &ios_next_40;
 const void *imgPlay = &ios_play_60;
 const void *imgPause = &ios_pause_60;
 const void *imgMusic = &ios_music_60;
+const void *img3dPrint = &ios_3dprint_60;
 
 int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
@@ -672,6 +674,9 @@ const void *getIconFromType(int tileType)
   case THERMOMETER:
     img = imgThermo;
     break;
+  case THREEDPRINT:
+    img = img3dPrint;
+    break;
   case WINDOW:
     img = imgWindow;
     break;
@@ -698,6 +703,7 @@ void createInputTypeEnum(JsonObject parent)
   typeEnum.add("text");
   typeEnum.add("thermometer");
   typeEnum.add("window");
+  typeEnum.add("3dprinter");
 }
 
 // decode type from input
@@ -717,6 +723,7 @@ int parseInputType(const char *inputType)
   if (strcmp(inputType, "text") == 0)         { return TEXT; }
   if (strcmp(inputType, "thermometer") == 0)  { return THERMOMETER; }
   if (strcmp(inputType, "window") == 0)       { return WINDOW; }
+  if (strcmp(inputType, "3dprinter") == 0)    { return THREEDPRINT; }
 
   return NONE;
 }
@@ -1258,7 +1265,7 @@ lv_log_register_print_cb(my_print); // register print function for debugging
   defaultOnColorConfig(0, 0, 0);
   defaultThemeColorConfig(0, 0, 0);
 
-  // show splash screen
+  // show splash screen 
   lv_obj_t *img1 = lv_img_create(lv_scr_act());
   lv_img_set_src(img1, imgSplash);
   lv_obj_align(img1, LV_ALIGN_CENTER, 0, 0);
