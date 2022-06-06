@@ -176,7 +176,7 @@ void publishTileEvent(classTile *tPtr, const char *event)
 
 // publish remote button Event
 // {"screen":1, "tile":1, "tiletype":remote, "type":"up", "event":"single" }
-void publishRemoteEvent(classTile *tPtr, int btnIndex)
+void publishRemoteEvent(classTile *tPtr, int btnIndex, const char* event)
 {
   StaticJsonDocument<128> json;
   json["screen"] = tPtr->getScreenIdx();
@@ -194,7 +194,7 @@ void publishRemoteEvent(classTile *tPtr, int btnIndex)
     case 8:   json["type"] = "back"; break;
     case 9:   json["type"] = "home"; break;
   }
-  json["event"] = "single";
+  json["event"] = event;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -519,17 +519,17 @@ static void navigationButtonEventHandler(lv_event_t *e)
   int btnIndex = 0;
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t *obj = lv_event_get_target(e);
-  if (code == LV_EVENT_SHORT_CLICKED) // VALUE_CHANGED)
+  if ((code == LV_EVENT_SHORT_CLICKED)  || (code == LV_EVENT_LONG_PRESSED))
   {
     if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_1))      btnIndex += 1;
     if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_2))      btnIndex += 2;
     if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_3))      btnIndex += 4;
     if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_4))      btnIndex += 8;
     classTile *tPtr = (classTile *)lv_event_get_user_data(e);
-
-    printf("Remote Event received :  screen: %s; Index: %d\n", "AA", btnIndex);
-
-    publishRemoteEvent(tPtr, btnIndex);
+    if (code == LV_EVENT_SHORT_CLICKED) 
+      publishRemoteEvent(tPtr, btnIndex, "single");
+    else
+      publishRemoteEvent(tPtr, btnIndex, "hold");
   }
 }
 
