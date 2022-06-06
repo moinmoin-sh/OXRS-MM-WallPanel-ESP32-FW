@@ -33,6 +33,7 @@
 #include <classScreenList.h>
 #include <classScreenSettings.h>
 #include <classDropDown.h>
+#include <classRemote.h>
 
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -75,6 +76,7 @@ extern "C" const lv_img_dsc_t ios_play_60;
 extern "C" const lv_img_dsc_t ios_pause_60;
 extern "C" const lv_img_dsc_t ios_music_60;
 extern "C" const lv_img_dsc_t ios_3dprint_60;
+extern "C" const lv_img_dsc_t ios_remote_60;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -99,6 +101,7 @@ const void *imgPlay = &ios_play_60;
 const void *imgPause = &ios_pause_60;
 const void *imgMusic = &ios_music_60;
 const void *img3dPrint = &ios_3dprint_60;
+const void *imgRemote = &ios_remote_60;
 
 int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
@@ -126,6 +129,9 @@ OXRS_WT32 wt32;
 
 // drop down overlay
 classDropDown dropDownOverlay = classDropDown();
+
+// remote overlay
+classRemote remoteControl = classRemote();
 
 /*--------------------------- screen / lvgl relevant  -----------------------------*/
 
@@ -164,6 +170,31 @@ void publishTileEvent(classTile *tPtr, const char *event)
   json["type"] = "button";
   json["event"] = event;
   json["state"] = (tPtr->getState() == true) ? "on" : "off";
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
+// publish remote button Event
+// {"screen":1, "tile":1, "tiletype":remote, "type":"up", "event":"single" }
+void publishRemoteEvent(classTile *tPtr, int btnIndex)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
+  switch(btnIndex)
+  {
+    case 1:   json["type"] = "up"; break;
+    case 2:   json["type"] = "down"; break;
+    case 3:   json["type"] = "left"; break;
+    case 4:   json["type"] = "right"; break;
+    case 5:   json["type"] = "ok"; break;
+    case 6:   json["type"] = "info"; break;
+    case 7:   json["type"] = "list"; break;
+    case 8:   json["type"] = "back"; break;
+    case 9:   json["type"] = "home"; break;
+  }
+  json["event"] = "single";
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -482,6 +513,26 @@ static void prevNextEventHandler(lv_event_t *e)
   }
 }
 
+// remote control 
+static void navigationButtonEventHandler(lv_event_t *e)
+{
+  int btnIndex = 0;
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *obj = lv_event_get_target(e);
+  if (code == LV_EVENT_SHORT_CLICKED) // VALUE_CHANGED)
+  {
+    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_1))      btnIndex += 1;
+    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_2))      btnIndex += 2;
+    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_3))      btnIndex += 4;
+    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_4))      btnIndex += 8;
+    classTile *tPtr = (classTile *)lv_event_get_user_data(e);
+
+    printf("Remote Event received :  screen: %s; Index: %d\n", "AA", btnIndex);
+
+    publishRemoteEvent(tPtr, btnIndex);
+  }
+}
+
 // drop down event handler
 static void dropDownEventHandler(lv_event_t *e)
 {
@@ -538,6 +589,12 @@ static void tileEventHandler(lv_event_t *e)
         dropDownOverlay = classDropDown(tPtr, dropDownEventHandler);
         dropDownOverlay.open();
       }
+      // button is type REMOTE -> show remote overlay
+      else if (tPtr->getType() == REMOTE)
+      {
+        remoteControl = classRemote(tPtr, navigationButtonEventHandler);
+      }
+
       //  publish click event
       else
       {
@@ -659,6 +716,9 @@ const void *getIconFromType(int tileType)
   case PLAYER:
     img = imgPlay;
     break;
+  case REMOTE:
+    img = imgRemote;
+    break;
   case ROOM:
     img = imgRoom;
     break;
@@ -698,6 +758,7 @@ void createInputTypeEnum(JsonObject parent)
   typeEnum.add("number");
   typeEnum.add("onoff");
   typeEnum.add("player");
+  typeEnum.add("remote");
   typeEnum.add("room");
   typeEnum.add("speaker");
   typeEnum.add("text");
@@ -718,6 +779,7 @@ int parseInputType(const char *inputType)
   if (strcmp(inputType, "music") == 0)        { return MUSIC; }
   if (strcmp(inputType, "onoff") == 0)        { return ONOFF; }
   if (strcmp(inputType, "player") == 0)       { return PLAYER; }
+  if (strcmp(inputType, "remote") == 0)       { return REMOTE; }
   if (strcmp(inputType, "room") == 0)         { return ROOM; }
   if (strcmp(inputType, "speaker") == 0)      { return SPEAKER; }
   if (strcmp(inputType, "text") == 0)         { return TEXT; }
@@ -780,7 +842,7 @@ void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *lab
   }
 
   // enable drop down
-  if (tileType == DROPDOWN)
+  if ((tileType == DROPDOWN) || (tileType == REMOTE))
   {
     ref.setDropDownIndicator() ;
   }
