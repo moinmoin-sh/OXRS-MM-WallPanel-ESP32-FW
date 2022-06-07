@@ -77,6 +77,8 @@ extern "C" const lv_img_dsc_t ios_pause_60;
 extern "C" const lv_img_dsc_t ios_music_60;
 extern "C" const lv_img_dsc_t ios_3dprint_60;
 extern "C" const lv_img_dsc_t ios_remote_60;
+extern "C" const lv_img_dsc_t oxrs_splash_PNG;
+extern "C" const lv_img_dsc_t AustinsBlack_png;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -90,8 +92,8 @@ const void *imgBack = &ios_back_25_l;
 const void *imgHome = &ios_home_25_l;
 const void *imgRoom = &ios_room_60;
 const void *imgThermo = &ios_thermometer_60;
-const void *imgAustin = &ui_img_austins_black_320x70_png;
-const void *imgSplash = &splash;
+const void *imgAustin = &AustinsBlack_png;
+const void *imgSplash = &oxrs_splash_PNG;
 const void *imgOnOff = &ios_onoff_60;
 const void *imgSpeaker = &ios_speaker_60;
 const void *imgText = &ios_t_60;
@@ -1327,7 +1329,8 @@ lv_log_register_print_cb(my_print); // register print function for debugging
   defaultOnColorConfig(0, 0, 0);
   defaultThemeColorConfig(0, 0, 0);
 
-  // show splash screen 
+  // show splash screen
+  _setBackLight(20, false);
   lv_obj_t *img1 = lv_img_create(lv_scr_act());
   lv_img_set_src(img1, imgSplash);
   lv_obj_align(img1, LV_ALIGN_CENTER, 0, 0);
