@@ -22,7 +22,10 @@ private:
   lv_obj_t* _btnExit = NULL;
 
   void _createRemote(void);
-  
+  void _setCommon(lv_obj_t *button, int btnIndex);
+  void _setNavButtonProperties(lv_obj_t *button, int btnIndex);
+  void _setExtraButtonProperties(lv_obj_t *button, int btnIndex);
+
 public:
   lv_obj_t* ovlPanel = NULL;
 
