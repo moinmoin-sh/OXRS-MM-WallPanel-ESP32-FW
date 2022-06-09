@@ -9,8 +9,6 @@
 #include <OXRS_API.h>  // For REST API
 
 // Ethernet
-#define ETHERNET_CS_PIN 26
-#define WIZNET_RESET_PIN 13
 #define DHCP_TIMEOUT_MS 15000
 #define DHCP_RESPONSE_TIMEOUT_MS 4000
 
