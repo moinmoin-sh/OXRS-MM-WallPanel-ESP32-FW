@@ -77,7 +77,7 @@ extern "C" const lv_img_dsc_t ios_pause_60;
 extern "C" const lv_img_dsc_t ios_music_60;
 extern "C" const lv_img_dsc_t ios_3dprint_60;
 extern "C" const lv_img_dsc_t ios_remote_60;
-extern "C" const lv_img_dsc_t oxrs_splash_PNG;
+extern "C" const lv_img_dsc_t oxrs_splash_2206_png;
 extern "C" const lv_img_dsc_t AustinsBlack_png;
 
 const void *imgBlind = &ios_blind_60;
@@ -93,7 +93,7 @@ const void *imgHome = &ios_home_25_l;
 const void *imgRoom = &ios_room_60;
 const void *imgThermo = &ios_thermometer_60;
 const void *imgAustin = &AustinsBlack_png;
-const void *imgSplash = &oxrs_splash_PNG;
+const void *imgSplash = &oxrs_splash_2206_png;
 const void *imgOnOff = &ios_onoff_60;
 const void *imgSpeaker = &ios_speaker_60;
 const void *imgText = &ios_t_60;
