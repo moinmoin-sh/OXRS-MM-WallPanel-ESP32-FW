@@ -33,6 +33,7 @@
 #include <classScreenList.h>
 #include <classScreenSettings.h>
 #include <classDropDown.h>
+#include <classRemote.h>
 
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -75,6 +76,9 @@ extern "C" const lv_img_dsc_t ios_play_60;
 extern "C" const lv_img_dsc_t ios_pause_60;
 extern "C" const lv_img_dsc_t ios_music_60;
 extern "C" const lv_img_dsc_t ios_3dprint_60;
+extern "C" const lv_img_dsc_t ios_remote_60;
+extern "C" const lv_img_dsc_t oxrs_splash_2206_png;
+extern "C" const lv_img_dsc_t AustinsBlack_png;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -88,8 +92,8 @@ const void *imgBack = &ios_back_25_l;
 const void *imgHome = &ios_home_25_l;
 const void *imgRoom = &ios_room_60;
 const void *imgThermo = &ios_thermometer_60;
-const void *imgAustin = &ui_img_austins_black_320x70_png;
-const void *imgSplash = &splash;
+const void *imgAustin = &AustinsBlack_png;
+const void *imgSplash = &oxrs_splash_2206_png;
 const void *imgOnOff = &ios_onoff_60;
 const void *imgSpeaker = &ios_speaker_60;
 const void *imgText = &ios_t_60;
@@ -99,6 +103,7 @@ const void *imgPlay = &ios_play_60;
 const void *imgPause = &ios_pause_60;
 const void *imgMusic = &ios_music_60;
 const void *img3dPrint = &ios_3dprint_60;
+const void *imgRemote = &ios_remote_60;
 
 int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
@@ -126,6 +131,9 @@ OXRS_WT32 wt32;
 
 // drop down overlay
 classDropDown dropDownOverlay = classDropDown();
+
+// remote overlay
+classRemote remoteControl = classRemote();
 
 /*--------------------------- screen / lvgl relevant  -----------------------------*/
 
@@ -164,6 +172,31 @@ void publishTileEvent(classTile *tPtr, const char *event)
   json["type"] = "button";
   json["event"] = event;
   json["state"] = (tPtr->getState() == true) ? "on" : "off";
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
+// publish remote button Event
+// {"screen":1, "tile":1, "tiletype":remote, "type":"up", "event":"single" }
+void publishRemoteEvent(classTile *tPtr, int btnIndex, const char* event)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
+  switch(btnIndex)
+  {
+    case 1:   json["type"] = "up"; break;
+    case 2:   json["type"] = "down"; break;
+    case 3:   json["type"] = "left"; break;
+    case 4:   json["type"] = "right"; break;
+    case 5:   json["type"] = "ok"; break;
+    case 6:   json["type"] = "info"; break;
+    case 7:   json["type"] = "list"; break;
+    case 8:   json["type"] = "back"; break;
+    case 9:   json["type"] = "home"; break;
+  }
+  json["event"] = event;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -482,6 +515,26 @@ static void prevNextEventHandler(lv_event_t *e)
   }
 }
 
+// remote control 
+static void navigationButtonEventHandler(lv_event_t *e)
+{
+  int btnIndex = 0;
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *obj = lv_event_get_target(e);
+  if ((code == LV_EVENT_SHORT_CLICKED)  || (code == LV_EVENT_LONG_PRESSED))
+  {
+    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_1))      btnIndex += 1;
+    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_2))      btnIndex += 2;
+    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_3))      btnIndex += 4;
+    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_4))      btnIndex += 8;
+    classTile *tPtr = (classTile *)lv_event_get_user_data(e);
+    if (code == LV_EVENT_SHORT_CLICKED) 
+      publishRemoteEvent(tPtr, btnIndex, "single");
+    else
+      publishRemoteEvent(tPtr, btnIndex, "hold");
+  }
+}
+
 // drop down event handler
 static void dropDownEventHandler(lv_event_t *e)
 {
@@ -538,6 +591,12 @@ static void tileEventHandler(lv_event_t *e)
         dropDownOverlay = classDropDown(tPtr, dropDownEventHandler);
         dropDownOverlay.open();
       }
+      // button is type REMOTE -> show remote overlay
+      else if (tPtr->getType() == REMOTE)
+      {
+        remoteControl = classRemote(tPtr, navigationButtonEventHandler);
+      }
+
       //  publish click event
       else
       {
@@ -659,6 +718,9 @@ const void *getIconFromType(int tileType)
   case PLAYER:
     img = imgPlay;
     break;
+  case REMOTE:
+    img = imgRemote;
+    break;
   case ROOM:
     img = imgRoom;
     break;
@@ -698,6 +760,7 @@ void createInputTypeEnum(JsonObject parent)
   typeEnum.add("number");
   typeEnum.add("onoff");
   typeEnum.add("player");
+  typeEnum.add("remote");
   typeEnum.add("room");
   typeEnum.add("speaker");
   typeEnum.add("text");
@@ -718,6 +781,7 @@ int parseInputType(const char *inputType)
   if (strcmp(inputType, "music") == 0)        { return MUSIC; }
   if (strcmp(inputType, "onoff") == 0)        { return ONOFF; }
   if (strcmp(inputType, "player") == 0)       { return PLAYER; }
+  if (strcmp(inputType, "remote") == 0)       { return REMOTE; }
   if (strcmp(inputType, "room") == 0)         { return ROOM; }
   if (strcmp(inputType, "speaker") == 0)      { return SPEAKER; }
   if (strcmp(inputType, "text") == 0)         { return TEXT; }
@@ -780,7 +844,7 @@ void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *lab
   }
 
   // enable drop down
-  if (tileType == DROPDOWN)
+  if ((tileType == DROPDOWN) || (tileType == REMOTE))
   {
     ref.setDropDownIndicator() ;
   }
@@ -1265,7 +1329,8 @@ lv_log_register_print_cb(my_print); // register print function for debugging
   defaultOnColorConfig(0, 0, 0);
   defaultThemeColorConfig(0, 0, 0);
 
-  // show splash screen 
+  // show splash screen
+  _setBackLight(20, false);
   lv_obj_t *img1 = lv_img_create(lv_scr_act());
   lv_img_set_src(img1, imgSplash);
   lv_obj_align(img1, LV_ALIGN_CENTER, 0, 0);

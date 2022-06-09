@@ -13,6 +13,7 @@ enum tileType_t
   NUMBER,
   ONOFF,
   PLAYER,
+  REMOTE,
   ROOM,
   SETTINGS,
   SPEAKER,
