@@ -112,7 +112,7 @@ const void *imgLocked = &ios_locked_60;
 const void *imgUnLocked = &ios_unlocked_60;
 const void *imgCeilingFan = &ios_ceiling_fan_60;
 
-                          int _act_BackLight;
+int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
 uint32_t _noActivityTimeOut = 0L;
 
