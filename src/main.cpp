@@ -82,6 +82,7 @@ extern "C" const lv_img_dsc_t oxrs_splash_2206_png;
 extern "C" const lv_img_dsc_t AustinsBlack_png;
 extern "C" const lv_img_dsc_t ios_locked_60;
 extern "C" const lv_img_dsc_t ios_unlocked_60;
+extern "C" const lv_img_dsc_t ios_ceiling_fan_60;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -109,8 +110,9 @@ const void *img3dPrint = &ios_3dprint_60;
 const void *imgRemote = &ios_remote_60;
 const void *imgLocked = &ios_locked_60;
 const void *imgUnLocked = &ios_unlocked_60;
+const void *imgCeilingFan = &ios_ceiling_fan_60;
 
-int _act_BackLight;
+                          int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
 uint32_t _noActivityTimeOut = 0L;
 
@@ -753,6 +755,9 @@ const void *getIconFromType(int tileType)
   case BLIND:
     img = imgBlind;
     break;
+  case CEILINGFAN:
+    img = imgCeilingFan;
+    break;
   case COFFEE:
     img = imgCoffee;
     break;
@@ -814,6 +819,7 @@ void createInputTypeEnum(JsonObject parent)
   JsonArray typeEnum = parent.createNestedArray("enum");
 
   typeEnum.add("blind");
+  typeEnum.add("ceilingfan");
   typeEnum.add("coffee");
   typeEnum.add("door");
   typeEnum.add("dropdown");
@@ -836,6 +842,7 @@ void createInputTypeEnum(JsonObject parent)
 int parseInputType(const char *inputType)
 {
   if (strcmp(inputType, "blind") == 0)        { return BLIND; }
+  if (strcmp(inputType, "ceilingfan") == 0)   { return CEILINGFAN; }
   if (strcmp(inputType, "coffee") == 0)       { return COFFEE; }
   if (strcmp(inputType, "door") == 0)         { return DOOR; }
   if (strcmp(inputType, "dropdown") == 0)     { return DROPDOWN; }
