@@ -9,6 +9,7 @@ enum tileType_t
   DOOR,
   DROPDOWN,
   LIGHT,
+  LOCK,
   MUSIC,
   NUMBER,
   ONOFF,

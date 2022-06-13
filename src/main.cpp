@@ -34,6 +34,7 @@
 #include <classScreenSettings.h>
 #include <classDropDown.h>
 #include <classRemote.h>
+#include <classKeyPad.h>
 
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -79,6 +80,8 @@ extern "C" const lv_img_dsc_t ios_3dprint_60;
 extern "C" const lv_img_dsc_t ios_remote_60;
 extern "C" const lv_img_dsc_t oxrs_splash_2206_png;
 extern "C" const lv_img_dsc_t AustinsBlack_png;
+extern "C" const lv_img_dsc_t ios_locked_60;
+extern "C" const lv_img_dsc_t ios_unlocked_60;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -104,6 +107,8 @@ const void *imgPause = &ios_pause_60;
 const void *imgMusic = &ios_music_60;
 const void *img3dPrint = &ios_3dprint_60;
 const void *imgRemote = &ios_remote_60;
+const void *imgLocked = &ios_locked_60;
+const void *imgUnLocked = &ios_unlocked_60;
 
 int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
@@ -134,6 +139,9 @@ classDropDown dropDownOverlay = classDropDown();
 
 // remote overlay
 classRemote remoteControl = classRemote();
+
+// key pad overlay
+classKeyPad keyPad = classKeyPad();
 
 /*--------------------------- screen / lvgl relevant  -----------------------------*/
 
@@ -212,6 +220,21 @@ void publishDropDownEvent(classTile *tPtr, int listIndex)
   json["type"] = "dropdown";
   json["event"] = "change";
   json["state"] = listIndex;
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
+// publish key pad change Event
+// {"screen":1, "tile":1, "type":"key", "event":"change" , "state":"12345"}
+void publishKeyPadEvent(classTile *tPtr, const char *key)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
+  json["type"] = "key";
+  json["event"] = "change";
+  json["state"] = key;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -515,6 +538,37 @@ static void prevNextEventHandler(lv_event_t *e)
   }
 }
 
+// key pad event handler
+static void keyPadEventHandler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *obj = lv_event_get_target(e);
+  if (code == LV_EVENT_SHORT_CLICKED)
+  {
+    classTile *tPtr = (classTile *)lv_event_get_user_data(e);
+    uint32_t id = lv_btnmatrix_get_selected_btn(obj);
+    const char *txt = lv_btnmatrix_get_btn_text(obj, id);
+
+    LV_LOG_USER("%s was pressed\n", txt);
+    if (strcmp(txt, LV_SYMBOL_BACKSPACE) == 0)
+    {
+      keyPad.delChar();
+    }
+    else if (strcmp(txt, LV_SYMBOL_NEW_LINE) == 0)
+    {
+//      printf(keyPad.getPwd());
+      publishKeyPadEvent(tPtr, keyPad.getKey());
+      if (strlen(keyPad.getKey()) == 0) keyPad.close();
+//      keyPad.setLockState(true);
+    }
+    else
+    {
+      keyPad.addChar(txt[0]);
+    }
+    //       printf("%s\n", lv_textarea_get_text(pwd_ta_shadow));
+  }
+}
+
 // remote control 
 static void navigationButtonEventHandler(lv_event_t *e)
 {
@@ -595,6 +649,11 @@ static void tileEventHandler(lv_event_t *e)
       else if (tPtr->getType() == REMOTE)
       {
         remoteControl = classRemote(tPtr, navigationButtonEventHandler);
+      }
+
+      else if (tPtr->getType() == LOCK)
+      {
+        keyPad = classKeyPad(tPtr, keyPadEventHandler);
       }
 
       //  publish click event
@@ -706,6 +765,9 @@ const void *getIconFromType(int tileType)
   case LIGHT:
     img = imgBulb;
     break;
+  case LOCK:
+    img = imgLocked;
+    break;
   case MUSIC:
     img = imgMusic;
     break;
@@ -756,6 +818,7 @@ void createInputTypeEnum(JsonObject parent)
   typeEnum.add("door");
   typeEnum.add("dropdown");
   typeEnum.add("light");
+  typeEnum.add("lock");
   typeEnum.add("music");
   typeEnum.add("number");
   typeEnum.add("onoff");
@@ -777,6 +840,7 @@ int parseInputType(const char *inputType)
   if (strcmp(inputType, "door") == 0)         { return DOOR; }
   if (strcmp(inputType, "dropdown") == 0)     { return DROPDOWN; }
   if (strcmp(inputType, "light") == 0)        { return LIGHT; }
+  if (strcmp(inputType, "lock") == 0)         { return LOCK; }
   if (strcmp(inputType, "number") == 0)       { return NUMBER; }
   if (strcmp(inputType, "music") == 0)        { return MUSIC; }
   if (strcmp(inputType, "onoff") == 0)        { return ONOFF; }
@@ -843,8 +907,8 @@ void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *lab
     ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
   }
 
-  // enable drop down
-  if ((tileType == DROPDOWN) || (tileType == REMOTE))
+  // set indicator for modal screen
+  if ((tileType == DROPDOWN) || (tileType == REMOTE) || (tileType == LOCK))
   {
     ref.setDropDownIndicator() ;
   }
@@ -854,6 +918,12 @@ void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *lab
   {
     ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
     ref.setIconForStateOn(imgPause);
+  }
+
+  // enable lock (key pad)
+  if (tileType == LOCK)
+  {
+    ref.setIconForStateOn(imgUnLocked);
   }
 }
 
@@ -1182,6 +1252,29 @@ void jsonSetStateCommand(JsonVariant json)
   }
 }
 
+void jsonSetLockStateCommand(const char* lockState)
+{
+  // early exit if no valid keypad exist
+  if (!lv_obj_is_valid(keyPad.ovlPanel)) return;
+
+  if (strcmp(lockState, "locked") == 0)
+  {
+    keyPad.setLockState(true);
+  }
+  if (strcmp(lockState, "unlocked") == 0)
+  {
+    keyPad.setLockState(false);
+  }
+  if (strcmp(lockState, "failed") == 0)
+  {
+    keyPad.setFailed();
+  }
+  if (strcmp(lockState, "close") == 0)
+  {
+    keyPad.close();
+  }
+}
+
 void jsonCommand(JsonVariant json)
 {
   if (json.containsKey("backlight"))
@@ -1202,6 +1295,11 @@ void jsonCommand(JsonVariant json)
     {
       jsonSetStateCommand(states);
     }
+  }
+
+  if (json.containsKey("setlockstate"))
+  {
+    jsonSetLockStateCommand(json["setlockstate"]["set"]);
   }
 
   if (json.containsKey("screen"))
