@@ -27,6 +27,7 @@ protected:
   char _typeStr[16];
   int _linkedScreen = 0;
   bool _state = false;
+  bool _keyPadEnable = false;
   int _level = 0;
   const void *_img = NULL;
   const void *_imgOn = NULL;
@@ -55,10 +56,12 @@ public :
   void setColorToDefault(void);
   void setNumber(const char *number, const char *units);
   void setLink(int linkedScreen);
+  void setKeyPadEnable(bool enable);
   void setIconForStateOn(const void* imgStateOn);
   void setIconText(const char *iconText);
 
   int getLink(void);
+  bool getKeyPadEnable(void);
   tileId_t getId(void);
   int getScreenIdx(void);
   int getTileIdx(void);

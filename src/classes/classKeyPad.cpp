@@ -55,9 +55,9 @@ void classKeyPad::_createKeyPad(void)
   lv_obj_align(_btnm1, LV_ALIGN_BOTTOM_MID, 0, -10);
 
   pwd_ta = lv_textarea_create(_ovlPanel2);
-  lv_obj_set_style_border_width(pwd_ta, 0, NULL);
+  lv_obj_set_style_border_width(pwd_ta, 0, LV_PART_MAIN);
   lv_obj_set_style_text_font(pwd_ta, &pwd_fond_15, LV_PART_MAIN); // V
-  lv_obj_set_style_bg_opa(pwd_ta, 0, NULL);
+  lv_obj_set_style_bg_opa(pwd_ta, 0, LV_PART_MAIN);
   lv_textarea_set_align(pwd_ta, LV_TEXT_ALIGN_CENTER);
   lv_textarea_set_password_mode(pwd_ta, true);
   lv_textarea_set_password_show_time(pwd_ta, PASSWORD_SHOW_TIME);
@@ -72,7 +72,7 @@ void classKeyPad::_createKeyPad(void)
   _imgLockState = lv_img_create(_ovlPanel2);
   lv_obj_align(_imgLockState, LV_ALIGN_TOP_MID, 0, 0);
   lv_img_set_zoom(_imgLockState, 180);
-  setLockState(!_callingTile->getState());
+  setLockState(_callingTile->getState());
 }
 
 classKeyPad::classKeyPad(classTile *tile, lv_event_cb_t keyPadEventHandler)
@@ -98,8 +98,8 @@ void classKeyPad::setLockState(bool state)
   lv_textarea_set_text(pwd_ta, "");
   const void *img = (state == true) ? imgLocked : imgUnLocked;
   lv_img_set_src(_imgLockState, img);
-  lv_obj_set_style_img_recolor(_imgLockState, lv_color_hex(0xffffff), NULL);
-  lv_obj_set_style_img_recolor_opa(_imgLockState, 255, NULL);
+  lv_obj_set_style_img_recolor(_imgLockState, lv_color_hex(0xffffff), LV_PART_MAIN);
+  lv_obj_set_style_img_recolor_opa(_imgLockState, 255, LV_PART_MAIN);
 }
 
 const char *classKeyPad::getKey(void)
@@ -109,8 +109,8 @@ const char *classKeyPad::getKey(void)
 
 void classKeyPad::setFailed(void)
 {
-  lv_obj_set_style_img_recolor(_imgLockState, lv_color_hex(0xff0000), NULL);
-  lv_obj_set_style_img_recolor_opa(_imgLockState, 255, NULL);
+  lv_obj_set_style_img_recolor(_imgLockState, lv_color_hex(0xff0000), LV_PART_MAIN);
+  lv_obj_set_style_img_recolor_opa(_imgLockState, 255, LV_PART_MAIN);
 }
 
 void classKeyPad::close(void)

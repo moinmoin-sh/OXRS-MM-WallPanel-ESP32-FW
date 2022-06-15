@@ -558,16 +558,13 @@ static void keyPadEventHandler(lv_event_t *e)
     }
     else if (strcmp(txt, LV_SYMBOL_NEW_LINE) == 0)
     {
-//      printf(keyPad.getPwd());
       publishKeyPadEvent(tPtr, keyPad.getKey());
       if (strlen(keyPad.getKey()) == 0) keyPad.close();
-//      keyPad.setLockState(true);
     }
     else
     {
       keyPad.addChar(txt[0]);
     }
-    //       printf("%s\n", lv_textarea_get_text(pwd_ta_shadow));
   }
 }
 
@@ -652,8 +649,8 @@ static void tileEventHandler(lv_event_t *e)
       {
         remoteControl = classRemote(tPtr, navigationButtonEventHandler);
       }
-
-      else if (tPtr->getType() == LOCK)
+      // keypad is enabled for this tile
+      else if (tPtr->getKeyPadEnable())
       {
         keyPad = classKeyPad(tPtr, keyPadEventHandler);
       }
@@ -771,7 +768,7 @@ const void *getIconFromType(int tileType)
     img = imgBulb;
     break;
   case LOCK:
-    img = imgLocked;
+    img = imgUnLocked;
     break;
   case MUSIC:
     img = imgMusic;
@@ -864,7 +861,7 @@ int parseInputType(const char *inputType)
 }
 
 // Create any tile on any screen
-void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen, bool enOnTileLevelControl)
+void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen, bool enOnTileLevelControl, bool enKeyPad)
 {
   const void *img;
   // exit if screen or tile out of range
@@ -914,8 +911,15 @@ void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *lab
     ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
   }
 
-  // set indicator for modal screen
-  if ((tileType == DROPDOWN) || (tileType == REMOTE) || (tileType == LOCK))
+  // enable key pad popup
+  if (enKeyPad)
+  {
+    ref.setKeyPadEnable(enKeyPad);
+    ref.setDropDownIndicator();
+  }
+
+ // set indicator for modal screen
+  if ((tileType == DROPDOWN) || (tileType == REMOTE))
   {
     ref.setDropDownIndicator() ;
   }
@@ -930,7 +934,7 @@ void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *lab
   // enable lock (key pad)
   if (tileType == LOCK)
   {
-    ref.setIconForStateOn(imgUnLocked);
+    ref.setIconForStateOn(imgLocked);
   }
 }
 
@@ -984,7 +988,7 @@ void jsonTilesConfig(int screenIdx, JsonVariant json)
     return;
   }
 
-  createTile(json["type"], screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"]);
+  createTile(json["type"], screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"], json["enKeyPad"]);
 }
 
 void jsonConfig(JsonVariant json)
@@ -1070,6 +1074,10 @@ void screenConfigSchema(JsonVariant json)
   JsonObject enOnTileLevelControl = properties3.createNestedObject("enOnTileLevelControl");
   enOnTileLevelControl["title"] = "Enable on-tile level control (up/down buttons).";
   enOnTileLevelControl["type"] = "boolean";
+
+  JsonObject enKeyPad = properties3.createNestedObject("enKeyPad");
+  enKeyPad["title"] = "Enable Key Pad popup.";
+  enKeyPad["type"] = "boolean";
 
   JsonObject noClick = properties3.createNestedObject("noClick");
   noClick["title"] = "Disable Tile clicks";
