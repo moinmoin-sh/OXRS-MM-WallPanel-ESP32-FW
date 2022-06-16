@@ -227,16 +227,17 @@ void publishDropDownEvent(classTile *tPtr, int listIndex)
 }
 
 // publish key pad change Event
-// {"screen":1, "tile":1, "type":"key", "event":"change" , "state":"12345"}
+// {"screen":1, "tile":1, "tiletype":"light", "type":"button", "event":"key", "state":"off", "keycode":"1234" }
 void publishKeyPadEvent(classTile *tPtr, const char *key)
 {
   StaticJsonDocument<128> json;
   json["screen"] = tPtr->getScreenIdx();
   json["tile"] = tPtr->getTileIdx();
   json["tiletype"] = tPtr->getTypeStr();
-  json["type"] = "key";
-  json["event"] = "change";
-  json["state"] = key;
+  json["type"] = "button";
+  json["event"] = "key";
+  json["state"] = (tPtr->getState() == true) ? "on" : "off";
+  json["keycode"] = key;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -558,8 +559,10 @@ static void keyPadEventHandler(lv_event_t *e)
     }
     else if (strcmp(txt, LV_SYMBOL_NEW_LINE) == 0)
     {
-      publishKeyPadEvent(tPtr, keyPad.getKey());
-      if (strlen(keyPad.getKey()) == 0) keyPad.close();
+      if (strlen(keyPad.getKey()) == 0) 
+        keyPad.close();
+      else  
+        publishKeyPadEvent(tPtr, keyPad.getKey());
     }
     else
     {
