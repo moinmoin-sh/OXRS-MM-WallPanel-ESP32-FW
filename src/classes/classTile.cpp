@@ -309,6 +309,12 @@ void classTile::setIconText(const char *iconText)
   }
 }
 
+void classTile::getImages(const void* &imgOff, const void* &imgOn)
+{
+  imgOff = _img;
+  imgOn = _imgOn;
+}
+
 void classTile::addEventHandler(lv_event_cb_t callBack)
 {
   // add click detecttion

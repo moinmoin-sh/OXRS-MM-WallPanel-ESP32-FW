@@ -60,6 +60,7 @@ public :
   void setKeyPadEnable(bool enable);
   void setIconForStateOn(const void* imgStateOn);
   void setIconText(const char *iconText);
+  void getImages(const void* &imgOff, const void* &imgOn);
 
   int getLink(void);
   bool getKeyPadEnable(void);

@@ -5,8 +5,6 @@
 
 extern lv_color_t colorOn;
 extern lv_color_t colorBg;
-extern const void *imgLocked;
-extern const void *imgUnLocked;
 
 extern "C" const lv_font_t pwd_fond_15;
 
@@ -78,6 +76,7 @@ void classKeyPad::_createKeyPad(void)
 classKeyPad::classKeyPad(classTile *tile, lv_event_cb_t keyPadEventHandler)
 {
   _callingTile = tile;  
+  _callingTile->getImages(_imgUnLocked, _imgLocked);
   _createKeyPad();
 
   lv_obj_add_event_cb(_btnm1, keyPadEventHandler, LV_EVENT_SHORT_CLICKED, _callingTile);
@@ -96,7 +95,7 @@ void classKeyPad::delChar(void)
 void classKeyPad::setLockState(bool state)
 {
   lv_textarea_set_text(pwd_ta, "");
-  const void *img = (state == true) ? imgLocked : imgUnLocked;
+  const void *img = (state == true) ? _imgLocked : _imgUnLocked;
   lv_img_set_src(_imgLockState, img);
   lv_obj_set_style_img_recolor(_imgLockState, lv_color_hex(0xffffff), LV_PART_MAIN);
   lv_obj_set_style_img_recolor_opa(_imgLockState, 255, LV_PART_MAIN);

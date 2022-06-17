@@ -13,6 +13,8 @@ private:
   lv_obj_t *_btnm1 = NULL;
   lv_obj_t *_imgLockState = NULL;
   lv_obj_t *pwd_ta = NULL;
+  const void *_imgLocked;
+  const void *_imgUnLocked;
 
   void _createKeyPad(void);
 
