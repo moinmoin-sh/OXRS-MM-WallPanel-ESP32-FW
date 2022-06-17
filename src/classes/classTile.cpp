@@ -336,6 +336,11 @@ int classTile::getLevel(void)
   return _level;
 }
 
+void classTile::setTopDownMode(bool enable)
+{
+  _topDownMode = enable;
+}
+
 void classTile::addUpDownControl(lv_event_cb_t upDownEventHandler, const void *imgUpperButton, const void *imgLowerButton)
 {
   // set button and label size from grid
@@ -353,8 +358,6 @@ void classTile::addUpDownControl(lv_event_cb_t upDownEventHandler, const void *i
   lv_obj_set_style_bg_img_recolor(_btnUp, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_CHECKED);
   lv_obj_set_style_bg_img_recolor_opa(_btnUp, 255, LV_PART_MAIN | LV_STATE_CHECKED);
   lv_obj_set_style_bg_img_recolor_opa(_btnUp, 100, LV_PART_MAIN | LV_STATE_PRESSED);
-  // upper button has flag set to differentiate from lower button
-  lv_obj_add_flag(_btnUp, LV_OBJ_FLAG_USER_1);
 
   _btnDown = lv_btn_create(_btn);
   lv_obj_set_size(_btnDown, width, height);
@@ -367,6 +370,11 @@ void classTile::addUpDownControl(lv_event_cb_t upDownEventHandler, const void *i
   lv_obj_set_style_bg_img_recolor_opa(_btnDown, 255, LV_PART_MAIN | LV_STATE_CHECKED);
   lv_obj_set_style_bg_img_recolor_opa(_btnDown, 100, LV_PART_MAIN | LV_STATE_PRESSED);
 
+  // select which button increments (USER_FLAG set = increment)
+  if (!_topDownMode)
+    lv_obj_add_flag(_btnUp, LV_OBJ_FLAG_USER_1);
+  else
+    lv_obj_add_flag(_btnDown, LV_OBJ_FLAG_USER_1);
   // add event handler
   lv_obj_add_event_cb(_btnUp, upDownEventHandler, LV_EVENT_ALL, this);
   lv_obj_add_event_cb(_btnDown, upDownEventHandler, LV_EVENT_ALL, this);
@@ -395,30 +403,49 @@ void classTile::showOvlBar(int level)
   if (lv_obj_get_state(_btn) & LV_STATE_CHECKED)
     lv_obj_add_state(_bar, LV_STATE_CHECKED);
   lv_bar_set_range(_bar, 0, 100);
-  lv_bar_set_value(_bar, level, LV_ANIM_OFF);
   lv_obj_set_size(_bar, 10, 60);
   lv_obj_align(_bar, LV_ALIGN_CENTER, 10, 0);
 
   lv_obj_set_style_radius(_bar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_opa(_bar, 60, LV_PART_MAIN | LV_STATE_DEFAULT);
-
   lv_obj_set_style_radius(_bar, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_opa(_bar, 150, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-  lv_obj_set_style_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-
-  lv_obj_set_style_bg_color(_bar, colorOn, LV_PART_INDICATOR | LV_STATE_CHECKED);
-  lv_obj_set_style_bg_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_CHECKED);
 
   // _barLabel
   lv_obj_t *_barLabel = lv_label_create(_ovlPanel);
   lv_obj_set_size(_barLabel, 40, LV_SIZE_CONTENT);
   lv_obj_align(_barLabel, LV_ALIGN_TOP_MID, -20, 000);
-  lv_obj_set_y(_barLabel, 38 - (50 * 0 / 100));
   lv_obj_set_style_text_align(_barLabel, LV_TEXT_ALIGN_RIGHT, 0);
   lv_obj_set_style_text_color(_barLabel, lv_color_hex(0x000000), 0);
   lv_label_set_text_fmt(_barLabel, "%d", level);
+
+  // set mode to bottom-up(default)  or top-down
+  if (!_topDownMode)
+  {
+    lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(_bar, 60, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(_bar, 150, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+
+    lv_obj_set_style_bg_color(_bar, colorOn, LV_PART_INDICATOR | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_CHECKED);
+
+    lv_obj_set_y(_barLabel, 38 - (50 * 0 / 100));
+    lv_bar_set_value(_bar, level, LV_ANIM_OFF);
+  }
+  else
+  {
+    lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(_bar, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_set_style_bg_color(_bar, lv_color_make(255, 255, 255), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(_bar, 180, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+
+    lv_obj_set_style_bg_color(_bar, colorOn, LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_opa(_bar, 255, LV_PART_MAIN | LV_STATE_CHECKED);
+
+    lv_obj_set_y(_barLabel, -10);
+    lv_bar_set_value(_bar, 100 - level, LV_ANIM_OFF);
+  }
 
   lv_obj_del_delayed(_ovlPanel, 2000);
 }

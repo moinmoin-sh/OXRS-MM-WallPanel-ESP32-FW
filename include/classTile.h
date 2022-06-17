@@ -29,6 +29,7 @@ protected:
   bool _state = false;
   bool _keyPadEnable = false;
   int _level = 0;
+  bool _topDownMode = false;
   const void *_img = NULL;
   const void *_imgOn = NULL;
   uint16_t _dropDownIndex = 0;
@@ -74,6 +75,7 @@ public :
 
   void setLevel(int level, bool force);
   int getLevel(void);
+  void setTopDownMode(bool enable);
   void showOvlBar(int level);
   void addUpDownControl(lv_event_cb_t upDownEventHandler, const void* imgUpperButton, const void* imgLowerButton);
  

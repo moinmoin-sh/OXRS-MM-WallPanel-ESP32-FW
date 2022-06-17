@@ -909,8 +909,10 @@ void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *lab
   }
 
   // enable on-tile level control
+  // set mode to Top-Down if type == BLIND
   if (enOnTileLevelControl)
   {
+    if (ref.getType() == BLIND) ref.setTopDownMode(true);
     ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
   }
 
