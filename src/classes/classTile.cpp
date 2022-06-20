@@ -426,13 +426,16 @@ void classTile::showOvlBar(int level)
   // set mode to bottom-up(default)  or top-down
   if (!_topDownMode)
   {
-    lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(_bar, 60, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(_bar, lv_color_lighten(colorBg, 200), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(_bar, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(_bar, 150, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(_bar, lv_color_lighten(colorBg, 50), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
-    lv_obj_set_style_bg_color(_bar, colorOn, LV_PART_INDICATOR | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_color(_bar, lv_color_lighten(colorOn, 150), LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_opa(_bar, 255, LV_PART_MAIN | LV_STATE_CHECKED);
+
+    lv_obj_set_style_bg_color(_bar, lv_color_lighten(colorOn, 0), LV_PART_INDICATOR | LV_STATE_CHECKED);
     lv_obj_set_style_bg_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_CHECKED);
 
     lv_obj_set_y(_barLabel, 38 - (50 * 0 / 100));
@@ -440,14 +443,17 @@ void classTile::showOvlBar(int level)
   }
   else
   {
-    lv_obj_set_style_bg_color(_bar, colorBg, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(_bar, lv_color_lighten(colorBg, 50), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(_bar, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    lv_obj_set_style_bg_color(_bar, lv_color_make(255, 255, 255), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(_bar, 180, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(_bar, lv_color_lighten(colorBg, 200), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
-    lv_obj_set_style_bg_color(_bar, colorOn, LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_color(_bar, lv_color_lighten(colorOn, 0), LV_PART_MAIN | LV_STATE_CHECKED);
     lv_obj_set_style_bg_opa(_bar, 255, LV_PART_MAIN | LV_STATE_CHECKED);
+
+    lv_obj_set_style_bg_color(_bar, lv_color_lighten(colorOn, 150), LV_PART_INDICATOR | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_CHECKED);
 
     lv_obj_set_y(_barLabel, -10);
     lv_bar_set_value(_bar, 100 - level, LV_ANIM_OFF);

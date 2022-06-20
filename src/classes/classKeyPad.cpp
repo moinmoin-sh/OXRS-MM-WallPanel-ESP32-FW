@@ -108,6 +108,7 @@ const char *classKeyPad::getKey(void)
 
 void classKeyPad::setFailed(void)
 {
+  lv_textarea_set_text(pwd_ta, "");
   lv_obj_set_style_img_recolor(_imgLockState, lv_color_hex(0xff0000), LV_PART_MAIN);
   lv_obj_set_style_img_recolor_opa(_imgLockState, 255, LV_PART_MAIN);
 }
