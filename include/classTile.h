@@ -27,7 +27,9 @@ protected:
   char _typeStr[16];
   int _linkedScreen = 0;
   bool _state = false;
+  bool _keyPadEnable = false;
   int _level = 0;
+  bool _topDownMode = false;
   const void *_img = NULL;
   const void *_imgOn = NULL;
   uint16_t _dropDownIndex = 0;
@@ -55,10 +57,13 @@ public :
   void setColorToDefault(void);
   void setNumber(const char *number, const char *units);
   void setLink(int linkedScreen);
+  void setKeyPadEnable(bool enable);
   void setIconForStateOn(const void* imgStateOn);
   void setIconText(const char *iconText);
+  void getImages(const void* &imgOff, const void* &imgOn);
 
   int getLink(void);
+  bool getKeyPadEnable(void);
   tileId_t getId(void);
   int getScreenIdx(void);
   int getTileIdx(void);
@@ -71,6 +76,7 @@ public :
 
   void setLevel(int level, bool force);
   int getLevel(void);
+  void setTopDownMode(bool enable);
   void showOvlBar(int level);
   void addUpDownControl(lv_event_cb_t upDownEventHandler, const void* imgUpperButton, const void* imgLowerButton);
  

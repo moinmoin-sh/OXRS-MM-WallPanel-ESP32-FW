@@ -34,6 +34,7 @@
 #include <classScreenSettings.h>
 #include <classDropDown.h>
 #include <classRemote.h>
+#include <classKeyPad.h>
 
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -79,6 +80,9 @@ extern "C" const lv_img_dsc_t ios_3dprint_60;
 extern "C" const lv_img_dsc_t ios_remote_60;
 extern "C" const lv_img_dsc_t oxrs_splash_2206_png;
 extern "C" const lv_img_dsc_t AustinsBlack_png;
+extern "C" const lv_img_dsc_t ios_locked_60;
+extern "C" const lv_img_dsc_t ios_unlocked_60;
+extern "C" const lv_img_dsc_t ios_ceiling_fan_60;
 
 const void *imgBlind = &ios_blind_60;
 const void *imgBulb = &ios_bulb_60;
@@ -104,6 +108,9 @@ const void *imgPause = &ios_pause_60;
 const void *imgMusic = &ios_music_60;
 const void *img3dPrint = &ios_3dprint_60;
 const void *imgRemote = &ios_remote_60;
+const void *imgLocked = &ios_locked_60;
+const void *imgUnLocked = &ios_unlocked_60;
+const void *imgCeilingFan = &ios_ceiling_fan_60;
 
 int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
@@ -134,6 +141,9 @@ classDropDown dropDownOverlay = classDropDown();
 
 // remote overlay
 classRemote remoteControl = classRemote();
+
+// key pad overlay
+classKeyPad keyPad = classKeyPad();
 
 /*--------------------------- screen / lvgl relevant  -----------------------------*/
 
@@ -212,6 +222,22 @@ void publishDropDownEvent(classTile *tPtr, int listIndex)
   json["type"] = "dropdown";
   json["event"] = "change";
   json["state"] = listIndex;
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
+// publish key pad change Event
+// {"screen":1, "tile":1, "tiletype":"light", "type":"button", "event":"key", "state":"off", "keycode":"1234" }
+void publishKeyPadEvent(classTile *tPtr, const char *key)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["tiletype"] = tPtr->getTypeStr();
+  json["type"] = "button";
+  json["event"] = "key";
+  json["state"] = (tPtr->getState() == true) ? "on" : "off";
+  json["keycode"] = key;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -515,6 +541,36 @@ static void prevNextEventHandler(lv_event_t *e)
   }
 }
 
+// key pad event handler
+static void keyPadEventHandler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *obj = lv_event_get_target(e);
+  if (code == LV_EVENT_SHORT_CLICKED)
+  {
+    classTile *tPtr = (classTile *)lv_event_get_user_data(e);
+    uint32_t id = lv_btnmatrix_get_selected_btn(obj);
+    const char *txt = lv_btnmatrix_get_btn_text(obj, id);
+
+    LV_LOG_USER("%s was pressed\n", txt);
+    if (strcmp(txt, LV_SYMBOL_BACKSPACE) == 0)
+    {
+      keyPad.delChar();
+    }
+    else if (strcmp(txt, LV_SYMBOL_NEW_LINE) == 0)
+    {
+      if (strlen(keyPad.getKey()) == 0) 
+        keyPad.close();
+      else  
+        publishKeyPadEvent(tPtr, keyPad.getKey());
+    }
+    else
+    {
+      keyPad.addChar(txt[0]);
+    }
+  }
+}
+
 // remote control 
 static void navigationButtonEventHandler(lv_event_t *e)
 {
@@ -595,6 +651,11 @@ static void tileEventHandler(lv_event_t *e)
       else if (tPtr->getType() == REMOTE)
       {
         remoteControl = classRemote(tPtr, navigationButtonEventHandler);
+      }
+      // keypad is enabled for this tile
+      else if (tPtr->getKeyPadEnable())
+      {
+        keyPad = classKeyPad(tPtr, keyPadEventHandler);
       }
 
       //  publish click event
@@ -694,6 +755,9 @@ const void *getIconFromType(int tileType)
   case BLIND:
     img = imgBlind;
     break;
+  case CEILINGFAN:
+    img = imgCeilingFan;
+    break;
   case COFFEE:
     img = imgCoffee;
     break;
@@ -705,6 +769,9 @@ const void *getIconFromType(int tileType)
     break;
   case LIGHT:
     img = imgBulb;
+    break;
+  case LOCK:
+    img = imgUnLocked;
     break;
   case MUSIC:
     img = imgMusic;
@@ -752,10 +819,12 @@ void createInputTypeEnum(JsonObject parent)
   JsonArray typeEnum = parent.createNestedArray("enum");
 
   typeEnum.add("blind");
+  typeEnum.add("ceilingfan");
   typeEnum.add("coffee");
   typeEnum.add("door");
   typeEnum.add("dropdown");
   typeEnum.add("light");
+  typeEnum.add("lock");
   typeEnum.add("music");
   typeEnum.add("number");
   typeEnum.add("onoff");
@@ -773,10 +842,12 @@ void createInputTypeEnum(JsonObject parent)
 int parseInputType(const char *inputType)
 {
   if (strcmp(inputType, "blind") == 0)        { return BLIND; }
+  if (strcmp(inputType, "ceilingfan") == 0)   { return CEILINGFAN; }
   if (strcmp(inputType, "coffee") == 0)       { return COFFEE; }
   if (strcmp(inputType, "door") == 0)         { return DOOR; }
   if (strcmp(inputType, "dropdown") == 0)     { return DROPDOWN; }
   if (strcmp(inputType, "light") == 0)        { return LIGHT; }
+  if (strcmp(inputType, "lock") == 0)         { return LOCK; }
   if (strcmp(inputType, "number") == 0)       { return NUMBER; }
   if (strcmp(inputType, "music") == 0)        { return MUSIC; }
   if (strcmp(inputType, "onoff") == 0)        { return ONOFF; }
@@ -793,7 +864,7 @@ int parseInputType(const char *inputType)
 }
 
 // Create any tile on any screen
-void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen, bool enOnTileLevelControl)
+void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen, bool enOnTileLevelControl, bool enKeyPad)
 {
   const void *img;
   // exit if screen or tile out of range
@@ -838,12 +909,21 @@ void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *lab
   }
 
   // enable on-tile level control
+  // set mode to Top-Down if type == BLIND
   if (enOnTileLevelControl)
   {
+    if (ref.getType() == BLIND) ref.setTopDownMode(true);
     ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
   }
 
-  // enable drop down
+  // enable key pad popup
+  if (enKeyPad)
+  {
+    ref.setKeyPadEnable(enKeyPad);
+    ref.setDropDownIndicator();
+  }
+
+ // set indicator for modal screen
   if ((tileType == DROPDOWN) || (tileType == REMOTE))
   {
     ref.setDropDownIndicator() ;
@@ -854,6 +934,12 @@ void createTile(const char* typeStr, int screenIdx, int tileIdx, const char *lab
   {
     ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
     ref.setIconForStateOn(imgPause);
+  }
+
+  // enable lock (key pad)
+  if (tileType == LOCK)
+  {
+    ref.setIconForStateOn(imgLocked);
   }
 }
 
@@ -907,7 +993,7 @@ void jsonTilesConfig(int screenIdx, JsonVariant json)
     return;
   }
 
-  createTile(json["type"], screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"]);
+  createTile(json["type"], screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"], json["enKeyPad"]);
 }
 
 void jsonConfig(JsonVariant json)
@@ -993,6 +1079,10 @@ void screenConfigSchema(JsonVariant json)
   JsonObject enOnTileLevelControl = properties3.createNestedObject("enOnTileLevelControl");
   enOnTileLevelControl["title"] = "Enable on-tile level control (up/down buttons).";
   enOnTileLevelControl["type"] = "boolean";
+
+  JsonObject enKeyPad = properties3.createNestedObject("enKeyPad");
+  enKeyPad["title"] = "Enable Key Pad popup.";
+  enKeyPad["type"] = "boolean";
 
   JsonObject noClick = properties3.createNestedObject("noClick");
   noClick["title"] = "Disable Tile clicks";
@@ -1182,6 +1272,29 @@ void jsonSetStateCommand(JsonVariant json)
   }
 }
 
+void jsonSetLockStateCommand(const char* lockState)
+{
+  // early exit if no valid keypad exist
+  if (!lv_obj_is_valid(keyPad.ovlPanel)) return;
+
+  if (strcmp(lockState, "locked") == 0)
+  {
+    keyPad.setLockState(true);
+  }
+  if (strcmp(lockState, "unlocked") == 0)
+  {
+    keyPad.setLockState(false);
+  }
+  if (strcmp(lockState, "failed") == 0)
+  {
+    keyPad.setFailed();
+  }
+  if (strcmp(lockState, "close") == 0)
+  {
+    keyPad.close();
+  }
+}
+
 void jsonCommand(JsonVariant json)
 {
   if (json.containsKey("backlight"))
@@ -1202,6 +1315,11 @@ void jsonCommand(JsonVariant json)
     {
       jsonSetStateCommand(states);
     }
+  }
+
+  if (json.containsKey("setlockstate"))
+  {
+    jsonSetLockStateCommand(json["setlockstate"]["set"]);
   }
 
   if (json.containsKey("screen"))

@@ -5,10 +5,12 @@ enum tileType_t
 {
   NONE,
   BLIND,
+  CEILINGFAN,
   COFFEE,
   DOOR,
   DROPDOWN,
   LIGHT,
+  LOCK,
   MUSIC,
   NUMBER,
   ONOFF,
