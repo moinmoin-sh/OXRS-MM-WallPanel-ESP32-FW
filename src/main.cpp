@@ -112,6 +112,7 @@ const void *imgLocked = &ios_locked_60;
 const void *imgUnLocked = &ios_unlocked_60;
 const void *imgCeilingFan = &ios_ceiling_fan_60;
 
+
 int _act_BackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
 uint32_t _noActivityTimeOut = 0L;
@@ -124,6 +125,15 @@ lv_color_t colorBg;
 
 /*--------------------------- Global Objects -----------------------------*/
 
+// WT32 handler
+OXRS_WT32 wt32;
+
+// the tile_type_LUT
+tileTypeLutEntry_t tileTypeLut[TT_TYPE_COUNT] = {0};
+
+// the image (icon) LUT
+imgLutEntry_t imgLut[30] = {0};   // TODO  define size according to needs 
+
 // screenVault holds all screens
 classScreenList screenVault = classScreenList();
 
@@ -132,9 +142,6 @@ classTileList tileVault = classTileList();
 
 // the Settings Screen
 classScreenSettings screenSettings = classScreenSettings();
-
-// WT32 handler
-OXRS_WT32 wt32;
 
 // drop down overlay
 classDropDown dropDownOverlay = classDropDown();
@@ -168,6 +175,82 @@ void my_print(const char *buf)
   Serial.flush();
 }
 #endif
+
+/*-----------------  img_lut and tile_type_LUT handler  -----------------------*/
+// initialise the image_LUT
+void initImgLut(void)
+{
+  int index = 0;
+  imgLut[index++] = {"blind", imgBlind};
+  imgLut[index++] = {"bulb", imgBulb};
+  imgLut[index++] = {"ceilingfan", imgCeilingFan};
+  imgLut[index++] = {"coffee", imgCoffee};
+  imgLut[index++] = {"door", imgDoor};
+  imgLut[index++] = {"lock", imgUnLocked};
+  imgLut[index++] = {"musik", imgMusic};
+  imgLut[index++] = {"remote", imgRemote};
+  imgLut[index++] = {"speaker", imgSpeaker};
+  imgLut[index++] = {"window", imgWindow};
+  imgLut[index++] = {"3dprint", img3dPrint};
+}
+
+// get image from string
+const void *getIconFromStr(const char* imgStr)
+{
+  const void * img = NULL;
+  for (int i = 0; imgLut[i].iconStr != NULL; i++)
+  {
+    if (strcmp(imgLut[i].iconStr, imgStr) == 0)
+    {
+      img = imgLut[i].img;
+      break;
+    }
+  }
+  return img;
+}
+
+// initialise the tile_type_LUT
+void initTileTypeLut(void)
+{
+  tileTypeLut[TT_BUTTON_ICON] = {TT_BUTTON_ICON, "button_icon", imgBulb};
+  tileTypeLut[TT_BUTTON_TEXT] = {TT_BUTTON_TEXT, "button_text", NULL};
+  tileTypeLut[TT_BUTTON_NUMBER] = {TT_BUTTON_NUMBER, "button_number", NULL};
+  tileTypeLut[TT_BUTTON_LEVEL_UP] = {TT_BUTTON_LEVEL_UP, "button_level_up", imgBulb};
+  tileTypeLut[TT_BUTTON_LEVEL_DOWN] = {TT_BUTTON_LEVEL_DOWN, "button_level_down", imgBulb};
+  tileTypeLut[TT_INDICATOR_ICON] = {TT_INDICATOR_ICON, "indicator_icon", imgWindow};
+  tileTypeLut[TT_INDICATOR_TEXT] = {TT_INDICATOR_TEXT, "indicator_text", NULL};
+  tileTypeLut[TT_INDICATOR_NUMBER] = {TT_INDICATOR_NUMBER, "indicator_number", NULL};
+  tileTypeLut[TT_COLOR_PICKER] = {TT_COLOR_PICKER, "color_picker", NULL};
+  tileTypeLut[TT_DROPDOWN] = {TT_DROPDOWN, "drop_down", NULL};
+  tileTypeLut[TT_KEYPAD] = {TT_KEYPAD, "keypad", imgUnLocked};
+  tileTypeLut[TT_KEYPAD_BLOCKING] = {TT_KEYPAD_BLOCKING, "keypad_blocking", imgUnLocked};
+  tileTypeLut[TT_REMOTE] = {TT_REMOTE, "remote", imgRemote};
+  tileTypeLut[TT_LINK] = {TT_LINK, "link", imgBulb};
+  tileTypeLut[TT_MEDIAPLAYER] = {TT_MEDIAPLAYER, "mediaplayer", imgUnLocked};
+}
+
+// converts a type string to its enum
+int parseInputType(const char *inputType)
+{
+  int i;
+  for (i = 0; i < TT_TYPE_COUNT; i++)
+  {
+    if (tileTypeLut[i].typeStr)
+      if (strcmp(tileTypeLut[i].typeStr, inputType) == 0)
+        break;
+  }
+  // in range check
+  if (i >= TT_TYPE_COUNT) i = 0;
+  return (tileTypeLut[i].type);
+}
+
+// converts a type enum to its string
+const char*  typeEnum2Str(int typeEnum)
+{
+  // in range check
+  if (typeEnum >= TT_TYPE_COUNT) typeEnum = 0;
+  return tileTypeLut[typeEnum].typeStr;
+}
 
 /*--------------------------- publish with MQTT  -----------------------------*/
 
@@ -393,7 +476,6 @@ void checkNoAvtivity(void)
  * ui helper functions
  */
 
-
 void defaultOnColorConfig(int red, int green, int blue)
 {
   // all zero is defined as unset, so set default
@@ -559,9 +641,9 @@ static void keyPadEventHandler(lv_event_t *e)
     }
     else if (strcmp(txt, LV_SYMBOL_NEW_LINE) == 0)
     {
-      if (strlen(keyPad.getKey()) == 0) 
+      if ((strlen(keyPad.getKey()) == 0) && !(tPtr->getType() == TT_KEYPAD_BLOCKING))
         keyPad.close();
-      else  
+      if (strlen(keyPad.getKey()) > 0) 
         publishKeyPadEvent(tPtr, keyPad.getKey());
     }
     else
@@ -642,13 +724,13 @@ static void tileEventHandler(lv_event_t *e)
         screenVault.show(linkedScreen);
       }
       // button is type DROPDOWN -> show drop down overlay
-      else if (tPtr->getType() == DROPDOWN)
+      else if (tPtr->getType() == TT_DROPDOWN)
       {
         dropDownOverlay = classDropDown(tPtr, dropDownEventHandler);
         dropDownOverlay.open();
       }
       // button is type REMOTE -> show remote overlay
-      else if (tPtr->getType() == REMOTE)
+      else if (tPtr->getType() == TT_REMOTE)
       {
         remoteControl = classRemote(tPtr, navigationButtonEventHandler);
       }
@@ -747,70 +829,15 @@ void createScreen(int screenIdx)
   Config handler
  */
 
-const void *getIconFromType(int tileType)
+// type list for config
+void createIconEnum(JsonObject parent)
 {
-  const void *img = NULL;
-  switch (tileType)
+  JsonArray typeEnum = parent.createNestedArray("enum");
+
+  for (int i = 0; imgLut[i].iconStr != NULL; i++)
   {
-  case BLIND:
-    img = imgBlind;
-    break;
-  case CEILINGFAN:
-    img = imgCeilingFan;
-    break;
-  case COFFEE:
-    img = imgCoffee;
-    break;
-  case DOOR:
-    img = imgDoor;
-    break;
-  case DROPDOWN:
-    img = NULL;
-    break;
-  case LIGHT:
-    img = imgBulb;
-    break;
-  case LOCK:
-    img = imgUnLocked;
-    break;
-  case MUSIC:
-    img = imgMusic;
-    break;
-  case NUMBER:
-    img = NULL;
-    break;
-  case ONOFF:
-    img = imgOnOff;
-    break;
-  case PLAYER:
-    img = imgPlay;
-    break;
-  case REMOTE:
-    img = imgRemote;
-    break;
-  case ROOM:
-    img = imgRoom;
-    break;
-  case SETTINGS:
-    img = imgSettings;
-    break;
-  case SPEAKER:
-    img = imgSpeaker;
-    break;
-  case TEXT:
-    img = imgText;
-    break;
-  case THERMOMETER:
-    img = imgThermo;
-    break;
-  case THREEDPRINT:
-    img = img3dPrint;
-    break;
-  case WINDOW:
-    img = imgWindow;
-    break;
+    typeEnum.add(imgLut[i].iconStr);
   }
-  return img;
 }
 
 // type list for config
@@ -818,574 +845,527 @@ void createInputTypeEnum(JsonObject parent)
 {
   JsonArray typeEnum = parent.createNestedArray("enum");
 
-  typeEnum.add("blind");
-  typeEnum.add("ceilingfan");
-  typeEnum.add("coffee");
-  typeEnum.add("door");
-  typeEnum.add("dropdown");
-  typeEnum.add("light");
-  typeEnum.add("lock");
-  typeEnum.add("music");
-  typeEnum.add("number");
-  typeEnum.add("onoff");
-  typeEnum.add("player");
-  typeEnum.add("remote");
-  typeEnum.add("room");
-  typeEnum.add("speaker");
-  typeEnum.add("text");
-  typeEnum.add("thermometer");
-  typeEnum.add("window");
-  typeEnum.add("3dprinter");
-}
-
-// decode type from input
-int parseInputType(const char *inputType)
-{
-  if (strcmp(inputType, "blind") == 0)        { return BLIND; }
-  if (strcmp(inputType, "ceilingfan") == 0)   { return CEILINGFAN; }
-  if (strcmp(inputType, "coffee") == 0)       { return COFFEE; }
-  if (strcmp(inputType, "door") == 0)         { return DOOR; }
-  if (strcmp(inputType, "dropdown") == 0)     { return DROPDOWN; }
-  if (strcmp(inputType, "light") == 0)        { return LIGHT; }
-  if (strcmp(inputType, "lock") == 0)         { return LOCK; }
-  if (strcmp(inputType, "number") == 0)       { return NUMBER; }
-  if (strcmp(inputType, "music") == 0)        { return MUSIC; }
-  if (strcmp(inputType, "onoff") == 0)        { return ONOFF; }
-  if (strcmp(inputType, "player") == 0)       { return PLAYER; }
-  if (strcmp(inputType, "remote") == 0)       { return REMOTE; }
-  if (strcmp(inputType, "room") == 0)         { return ROOM; }
-  if (strcmp(inputType, "speaker") == 0)      { return SPEAKER; }
-  if (strcmp(inputType, "text") == 0)         { return TEXT; }
-  if (strcmp(inputType, "thermometer") == 0)  { return THERMOMETER; }
-  if (strcmp(inputType, "window") == 0)       { return WINDOW; }
-  if (strcmp(inputType, "3dprinter") == 0)    { return THREEDPRINT; }
-
-  return NONE;
-}
-
-// Create any tile on any screen
-void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *label, bool noClick, int linkedScreen, bool enOnTileLevelControl, bool enKeyPad)
-{
-  const void *img;
-  // exit if screen or tile out of range
-  if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END) || (tileIdx < TILE_START) || (tileIdx > TILE_END))
+  for (int i = 1; i < TT_TYPE_COUNT; i++)
   {
-    printf("Config error. screen or tile out of range\n");
-    return;
+    typeEnum.add(tileTypeLut[i].typeStr);
   }
-  // TODO check if entry to be deleted
-  // Deletion of tiles via config not defined yet, requires reboot
-  // if (tileType == NONE)
-  // {
-  // };
-
-  // create screen if not exist
-  createScreen(screenIdx);
-
-  // delete icon reference if exist
-  tileVault.remove(screenIdx, tileIdx);
-
-  // set icon tileType dependent
-  int tileType = parseInputType(typeStr);
-  img = getIconFromType(tileType);
-
-  // create new Tile parseInputType(json["type"])
-  classTile &ref = tileVault.add();
-  ref.begin(screenVault.get(screenIdx)->container, img, label);
-  ref.registerTile(screenIdx, tileIdx, tileType, typeStr);
-
-  // handle icons depending on tileType capabilities
-  if (linkedScreen)
-  {
-    ref.setLink(linkedScreen);
-    // create screen if not exist
-    createScreen(linkedScreen);
   }
 
-  // set the event handler
-  if (linkedScreen || !noClick)
+
+  // Create any tile on any screen
+  void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *iconStr, const char *label, int linkedScreen)
   {
-    ref.addEventHandler(tileEventHandler);
-  }
+    const void *img;
+    int tileType;
 
-  // enable on-tile level control
-  // set mode to Top-Down if type == BLIND
-  if (enOnTileLevelControl)
-  {
-    if (ref.getType() == BLIND) ref.setTopDownMode(true);
-    ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
-  }
-
-  // enable key pad popup
-  if (enKeyPad)
-  {
-    ref.setKeyPadEnable(enKeyPad);
-    ref.setDropDownIndicator();
-  }
-
- // set indicator for modal screen
-  if ((tileType == DROPDOWN) || (tileType == REMOTE))
-  {
-    ref.setDropDownIndicator() ;
-  }
-
-  // enable mini player
-  if (tileType == PLAYER)
-  {
-    ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
-    ref.setIconForStateOn(imgPause);
-  }
-
-  // enable lock (key pad)
-  if (tileType == LOCK)
-  {
-    ref.setIconForStateOn(imgLocked);
-  }
-}
-
-/**
- * Config Handler
- */
-
-void jsonOnColorConfig(JsonVariant json)
-{
-  uint8_t red, green, blue;
-
-  red = (uint8_t)json["red"].as<int>();
-  green = (uint8_t)json["green"].as<int>();
-  blue = (uint8_t)json["blue"].as<int>();
-
-  defaultOnColorConfig(red, green, blue);
-}
-
-void jsonThemeColorConfig(JsonVariant json)
-{
-  uint8_t red, green, blue;
-
-  red = (uint8_t)json["red"].as<int>();
-  green = (uint8_t)json["green"].as<int>();
-  blue = (uint8_t)json["blue"].as<int>();
-
-  // update all instances
-  defaultThemeColorConfig(red, green, blue);
-  classScreen *sPtr = screenVault.getStart();
-  do
-  {
-    sPtr->updateBgColor();
-  } while ((sPtr = screenVault.getNext(sPtr->screenIdx)));
-
-}
-
-void jsonTilesConfig(int screenIdx, JsonVariant json)
-{
-  if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END))
-  {
-    wt32.print(F("[wpan] invalid screen: "));
-    wt32.println(screenIdx);
-    return;
-  }
-
-  int tileIdx = json["tile"].as<int>();
-  if ((tileIdx < TILE_START) || (tileIdx > TILE_END))
-  {
-    wt32.print(F("[wpan] invalid tile: "));
-    wt32.println(tileIdx);
-    return;
-  }
-
-  createTile(json["type"], screenIdx, tileIdx, json["label"], json["noClick"], json["link"], json["enOnTileLevelControl"], json["enKeyPad"]);
-}
-
-void jsonConfig(JsonVariant json)
-{
-  if (json.containsKey("color"))
-  {
-    jsonOnColorConfig(json["color"]);
-  }
-
-  if (json.containsKey("colortheme"))
-  {
-    jsonThemeColorConfig(json["colortheme"]);
-  }
-
-  if (json.containsKey("noActivitySeconds"))
-  {
-    _noActivityTimeOut = json["noActivitySeconds"].as<int>() * 1000;
-  }
- 
-  if (json.containsKey("screens"))
-  {
-    for (JsonVariant screenJson : json["screens"].as<JsonArray>())
+    // exit if screen or tile out of range
+    if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END) || (tileIdx < TILE_START) || (tileIdx > TILE_END))
     {
-      int screenIdx = screenJson["screen"].as<int>();
-      createScreen(screenIdx);
-      screenVault.get(screenIdx)->setLabel(screenJson["label"]);
-      for (JsonVariant tileJson : screenJson["tiles"].as<JsonArray>())
+      printf("Config error. screen or tile out of range\n");
+      return;
+    }
+
+    // create screen if not exist
+    createScreen(screenIdx);
+
+    // delete tile reference if exist
+    tileVault.remove(screenIdx, tileIdx);
+
+    // get the tile_type
+    tileType = parseInputType(typeStr);
+
+    // get the icon image
+    img = getIconFromStr(iconStr); 
+
+    // create new Tile 
+    classTile &ref = tileVault.add();
+    ref.begin(screenVault.get(screenIdx)->container, img, label);
+    ref.registerTile(screenIdx, tileIdx, tileType, typeStr);
+
+    // handle tiles depending on tileType capabilities
+    if ((tileType == TT_LINK) && linkedScreen)
+    {
+      ref.setLink(linkedScreen);
+      // create screen if not exist
+      createScreen(linkedScreen);
+    }
+
+    // set the event handler if NOT (INDICATOR_*)
+    if (!((tileType == TT_INDICATOR_ICON) || (tileType == TT_INDICATOR_TEXT) || (tileType == TT_INDICATOR_NUMBER)))
+    {
+      ref.addEventHandler(tileEventHandler);
+    }
+
+    // enable on-tile level control (bottom-up)
+    if (tileType == TT_BUTTON_LEVEL_UP)
+    {
+      ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
+    }
+
+    // enable on-tile level control (top-down)
+    if (tileType == TT_BUTTON_LEVEL_DOWN)
+    {
+      ref.setTopDownMode(true);
+      ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
+    }
+
+    // enable key pad popup, set img for state ON to imgLocked
+    if ((tileType == TT_KEYPAD) || (tileType == TT_KEYPAD_BLOCKING))
+    {
+      ref.setKeyPadEnable(true);
+      if (strcmp(iconStr, "lock") == 0)
+        ref.setIconForStateOn(imgLocked);
+    }
+
+    // set indicator for modal screen
+    if ((tileType == TT_DROPDOWN) || (tileType == TT_REMOTE) || (tileType == TT_KEYPAD) || (tileType == TT_KEYPAD_BLOCKING))
+    {
+      ref.setDropDownIndicator();
+    }
+
+    // enable mini player
+    if (tileType == TT_MEDIAPLAYER)
+    {
+      ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
+      ref.setIconForStateOn(imgPause);
+    }
+  }
+
+  /**
+   * Config Handler
+   */
+
+  void jsonOnColorConfig(JsonVariant json)
+  {
+    uint8_t red, green, blue;
+
+    red = (uint8_t)json["red"].as<int>();
+    green = (uint8_t)json["green"].as<int>();
+    blue = (uint8_t)json["blue"].as<int>();
+
+    defaultOnColorConfig(red, green, blue);
+  }
+
+  void jsonThemeColorConfig(JsonVariant json)
+  {
+    uint8_t red, green, blue;
+
+    red = (uint8_t)json["red"].as<int>();
+    green = (uint8_t)json["green"].as<int>();
+    blue = (uint8_t)json["blue"].as<int>();
+
+    // update all instances
+    defaultThemeColorConfig(red, green, blue);
+    classScreen *sPtr = screenVault.getStart();
+    do
+    {
+      sPtr->updateBgColor();
+    } while ((sPtr = screenVault.getNext(sPtr->screenIdx)));
+  }
+
+  void jsonTilesConfig(int screenIdx, JsonVariant json)
+  {
+    if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END))
+    {
+      wt32.print(F("[wpan] invalid screen: "));
+      wt32.println(screenIdx);
+      return;
+    }
+
+    int tileIdx = json["tile"].as<int>();
+    if ((tileIdx < TILE_START) || (tileIdx > TILE_END))
+    {
+      wt32.print(F("[wpan] invalid tile: "));
+      wt32.println(tileIdx);
+      return;
+    }
+
+    createTile(json["type"], screenIdx, tileIdx, json["icon"], json["label"], json["link"]);
+  }
+
+  void jsonConfig(JsonVariant json)
+  {
+    if (json.containsKey("color"))
+    {
+      jsonOnColorConfig(json["color"]);
+    }
+
+    if (json.containsKey("colortheme"))
+    {
+      jsonThemeColorConfig(json["colortheme"]);
+    }
+
+    if (json.containsKey("noActivitySeconds"))
+    {
+      _noActivityTimeOut = json["noActivitySeconds"].as<int>() * 1000;
+    }
+
+    if (json.containsKey("screens"))
+    {
+      for (JsonVariant screenJson : json["screens"].as<JsonArray>())
       {
-        jsonTilesConfig(screenIdx, tileJson);
+        int screenIdx = screenJson["screen"].as<int>();
+        createScreen(screenIdx);
+        screenVault.get(screenIdx)->setLabel(screenJson["label"]);
+        for (JsonVariant tileJson : screenJson["tiles"].as<JsonArray>())
+        {
+          jsonTilesConfig(screenIdx, tileJson);
+        }
       }
     }
   }
-}
 
-void screenConfigSchema(JsonVariant json)
-{
-  // screens
-  JsonObject screens = json.createNestedObject("screens");
-  screens["title"] = "screens Configuration";
-  screens["description"] = "Add Screen(s). Screen 1 is the HomeScreen and needs to be configured!";
-  screens["type"] = "array";
-
-  JsonObject items2 = screens.createNestedObject("items");
-  items2["type"] = "object";
-
-  JsonObject properties2 = items2.createNestedObject("properties");
-
-  JsonObject screen = properties2.createNestedObject("screen");
-  screen["title"] = "screen";
-  screen["type"] = "integer";
-  screen["minimum"] = SCREEN_START;
-  screen["maximum"] = SCREEN_END;
-
-  JsonObject label2 = properties2.createNestedObject("label");
-  label2["title"] = "Label";
-  label2["type"] = "string";
-
-  // tiles on screen
-  JsonObject tiles = properties2.createNestedObject("tiles");
-  tiles["title"] = "screen Configuration";
-  tiles["description"] = "Add Tiles to screen.";
-  tiles["type"] = "array";
-
-  JsonObject items3 = tiles.createNestedObject("items");
-  items3["type"] = "object";
-
-  JsonObject properties3 = items3.createNestedObject("properties");
-
-  JsonObject tile3 = properties3.createNestedObject("tile");
-  tile3["title"] = "Tile";
-  tile3["type"] = "integer";
-  tile3["minimum"] = TILE_START;
-  tile3["maximum"] = TILE_END;
-
-  JsonObject type3 = properties3.createNestedObject("type");
-  type3["title"] = "Type";
-  createInputTypeEnum(type3);
-
-  JsonObject label3 = properties3.createNestedObject("label");
-  label3["title"] = "Label";
-  label3["type"] = "string";
-
-  JsonObject enOnTileLevelControl = properties3.createNestedObject("enOnTileLevelControl");
-  enOnTileLevelControl["title"] = "Enable on-tile level control (up/down buttons).";
-  enOnTileLevelControl["type"] = "boolean";
-
-  JsonObject enKeyPad = properties3.createNestedObject("enKeyPad");
-  enKeyPad["title"] = "Enable Key Pad popup.";
-  enKeyPad["type"] = "boolean";
-
-  JsonObject noClick = properties3.createNestedObject("noClick");
-  noClick["title"] = "Disable Tile clicks";
-  noClick["type"] = "boolean";
-
-  JsonObject link = properties3.createNestedObject("link");
-  link["title"] = "Optional, select screen number if Tile links to new Screen.";
-  link["type"] = "integer";
-  link["minimum"] = SCREEN_START;
-  link["maximum"] = SCREEN_END;
-
-  JsonArray required3 = items3.createNestedArray("required");
-  required3.add("tile");
-  required3.add("type");
-
-  // default Theme color
-  JsonObject colortheme = json.createNestedObject("colortheme");
-  colortheme["title"] = "Set Theme Color.";
-  colortheme["description"] = "Enter your preferred RGB values.(Default [0, 0, 0])";
-
-  JsonObject properties5 = colortheme.createNestedObject("properties");
-
-  JsonObject red5 = properties5.createNestedObject("red");
-  red5["title"] = "Red";
-  red5["type"] = "integer";
-  red5["minimum"] = 0;
-  red5["maximum"] = 255;
-
-  JsonObject green5 = properties5.createNestedObject("green");
-  green5["title"] = "Green";
-  green5["type"] = "integer";
-  green5["minimum"] = 0;
-  green5["maximum"] = 255;
-
-  JsonObject blue5 = properties5.createNestedObject("blue");
-  blue5["title"] = "Blue";
-  blue5["type"] = "integer";
-  blue5["minimum"] = 0;
-  blue5["maximum"] = 255;
-
-  // default ON color
-  JsonObject color = json.createNestedObject("color");
-  color["title"] = "Defaut Icon Color for ON state.";
-  color["description"] = "Set your preferred RGB values.(Default [91, 190, 91])";
-
-  JsonObject properties4 = color.createNestedObject("properties");
-
-  JsonObject red = properties4.createNestedObject("red");
-  red["title"] = "Red";
-  red["type"] = "integer";
-  red["minimum"] = 0;
-  red["maximum"] = 255;
-
-  JsonObject green = properties4.createNestedObject("green");
-  green["title"] = "Green";
-  green["type"] = "integer";
-  green["minimum"] = 0;
-  green["maximum"] = 255;
-
-  JsonObject blue = properties4.createNestedObject("blue");
-  blue["title"] = "Blue";
-  blue["type"] = "integer";
-  blue["minimum"] = 0;
-  blue["maximum"] = 255;
-
-  // noActivity timeout
-  JsonObject noActivitySeconds = json.createNestedObject("noActivitySeconds");
-  noActivitySeconds["title"] = "Return to HomeScreen after Timeout (seconds) of no activity";
-  noActivitySeconds["description"] = "Display shows HomeScreen after Timeout (seconds) of no activity. 0 disables.";
-  noActivitySeconds["type"] = "integer";
-  noActivitySeconds["minimum"] = 0;
-  noActivitySeconds["maximum"] = 600;
-}
-
-void setConfigSchema()
-{
-  // Define our config schema
-  StaticJsonDocument<2048> json;
-  JsonVariant config = json.as<JsonVariant>();
-
-  screenConfigSchema(config);
-
-  // Pass our config schema down to the WT32 library
-  wt32.setConfigSchema(config);
-}
-
-/**
-  Command handler
- */
-
-void jsonSetStateCommand(JsonVariant json)
-{
-  int screenIdx = json["screen"].as<int>();
-  if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END))
+  void screenConfigSchema(JsonVariant json)
   {
-    wt32.print(F("[wpan] invalid screen: "));
-    wt32.println(screenIdx);
-    return;
+    // screens
+    JsonObject screens = json.createNestedObject("screens");
+    screens["title"] = "screens Configuration";
+    screens["description"] = "Add Screen(s). Screen 1 is the HomeScreen and needs to be configured!";
+    screens["type"] = "array";
+
+    JsonObject items2 = screens.createNestedObject("items");
+    items2["type"] = "object";
+
+    JsonObject properties2 = items2.createNestedObject("properties");
+
+    JsonObject screen = properties2.createNestedObject("screen");
+    screen["title"] = "screen";
+    screen["type"] = "integer";
+    screen["minimum"] = SCREEN_START;
+    screen["maximum"] = SCREEN_END;
+
+    JsonObject label2 = properties2.createNestedObject("label");
+    label2["title"] = "Label";
+    label2["type"] = "string";
+
+    // tiles on screen
+    JsonObject tiles = properties2.createNestedObject("tiles");
+    tiles["title"] = "screen Configuration";
+    tiles["description"] = "Add Tiles to screen.";
+    tiles["type"] = "array";
+
+    JsonObject items3 = tiles.createNestedObject("items");
+    items3["type"] = "object";
+
+    JsonObject properties3 = items3.createNestedObject("properties");
+
+    JsonObject tile3 = properties3.createNestedObject("tile");
+    tile3["title"] = "Tile";
+    tile3["type"] = "integer";
+    tile3["minimum"] = TILE_START;
+    tile3["maximum"] = TILE_END;
+
+    JsonObject type3 = properties3.createNestedObject("type");
+    type3["title"] = "Type";
+    createInputTypeEnum(type3);
+
+    JsonObject icon = properties3.createNestedObject("icon");
+    icon["title"] = "Icon";
+    createIconEnum(icon);
+
+    JsonObject label3 = properties3.createNestedObject("label");
+    label3["title"] = "Label";
+    label3["type"] = "string";
+
+    JsonObject link = properties3.createNestedObject("link");
+    link["title"] = "Optional, select screen number if Tile links to new Screen.";
+    link["type"] = "integer";
+    link["minimum"] = SCREEN_START;
+    link["maximum"] = SCREEN_END;
+
+    JsonArray required3 = items3.createNestedArray("required");
+    required3.add("tile");
+    required3.add("type");
+
+    // default Theme color
+    JsonObject colortheme = json.createNestedObject("colortheme");
+    colortheme["title"] = "Set Theme Color.";
+    colortheme["description"] = "Enter your preferred RGB values.(Default [0, 0, 0])";
+
+    JsonObject properties5 = colortheme.createNestedObject("properties");
+
+    JsonObject red5 = properties5.createNestedObject("red");
+    red5["title"] = "Red";
+    red5["type"] = "integer";
+    red5["minimum"] = 0;
+    red5["maximum"] = 255;
+
+    JsonObject green5 = properties5.createNestedObject("green");
+    green5["title"] = "Green";
+    green5["type"] = "integer";
+    green5["minimum"] = 0;
+    green5["maximum"] = 255;
+
+    JsonObject blue5 = properties5.createNestedObject("blue");
+    blue5["title"] = "Blue";
+    blue5["type"] = "integer";
+    blue5["minimum"] = 0;
+    blue5["maximum"] = 255;
+
+    // default ON color
+    JsonObject color = json.createNestedObject("color");
+    color["title"] = "Defaut Icon Color for ON state.";
+    color["description"] = "Set your preferred RGB values.(Default [91, 190, 91])";
+
+    JsonObject properties4 = color.createNestedObject("properties");
+
+    JsonObject red = properties4.createNestedObject("red");
+    red["title"] = "Red";
+    red["type"] = "integer";
+    red["minimum"] = 0;
+    red["maximum"] = 255;
+
+    JsonObject green = properties4.createNestedObject("green");
+    green["title"] = "Green";
+    green["type"] = "integer";
+    green["minimum"] = 0;
+    green["maximum"] = 255;
+
+    JsonObject blue = properties4.createNestedObject("blue");
+    blue["title"] = "Blue";
+    blue["type"] = "integer";
+    blue["minimum"] = 0;
+    blue["maximum"] = 255;
+
+    // noActivity timeout
+    JsonObject noActivitySeconds = json.createNestedObject("noActivitySeconds");
+    noActivitySeconds["title"] = "Return to HomeScreen after Timeout (seconds) of no activity";
+    noActivitySeconds["description"] = "Display shows HomeScreen after Timeout (seconds) of no activity. 0 disables.";
+    noActivitySeconds["type"] = "integer";
+    noActivitySeconds["minimum"] = 0;
+    noActivitySeconds["maximum"] = 600;
   }
 
-  int tileIdx = json["tile"].as<int>();
-  if ((tileIdx < TILE_START) || (tileIdx > TILE_END))
+  void setConfigSchema()
   {
-    wt32.print(F("[wpan] invalid tile: "));
-    wt32.println(tileIdx);
-    return;
+    // Define our config schema
+    StaticJsonDocument<2048> json;
+    JsonVariant config = json.as<JsonVariant>();
+
+    screenConfigSchema(config);
+
+    // Pass our config schema down to the WT32 library
+    wt32.setConfigSchema(config);
   }
 
-  classTile *tile = tileVault.get(screenIdx, tileIdx);
-  if (!tile)
-  {
-    wt32.print(F("[wpan] screen/tile not found: "));
-    wt32.print(screenIdx);
-    wt32.print(F("/"));
-    wt32.println(tileIdx);
-    return;
-  }
+  /**
+    Command handler
+   */
 
-  if (json.containsKey("state"))
+  void jsonSetStateCommand(JsonVariant json)
   {
-    const char * state = json["state"];
-    if (strcmp(state, "on") == 0)
+    int screenIdx = json["screen"].as<int>();
+    if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END))
     {
-      tile->setState(true);
+      wt32.print(F("[wpan] invalid screen: "));
+      wt32.println(screenIdx);
+      return;
     }
-    else if (strcmp(state, "off") == 0)
+
+    int tileIdx = json["tile"].as<int>();
+    if ((tileIdx < TILE_START) || (tileIdx > TILE_END))
     {
-      tile->setState(false);
+      wt32.print(F("[wpan] invalid tile: "));
+      wt32.println(tileIdx);
+      return;
     }
-    else
+
+    classTile *tile = tileVault.get(screenIdx, tileIdx);
+    if (!tile)
     {
-      wt32.print(F("[wpan] invalid state: "));
-      wt32.println(state);
+      wt32.print(F("[wpan] screen/tile not found: "));
+      wt32.print(screenIdx);
+      wt32.print(F("/"));
+      wt32.println(tileIdx);
+      return;
     }
-  }
 
-  if (json.containsKey("sublabel"))
-  {
-    tile->setSubLabel(json["sublabel"]);
-  }
-
-  if (json.containsKey("level"))
-  {
-    tile->setLevel(json["level"].as<int>(), false);
-  }
-
-  if (json.containsKey("color"))
-  {
-    int red = json["color"][0];
-    int green = json["color"][1];
-    int blue = json["color"][2];
-
-    // if all zero reset to colorOn
-    if ((red + green + blue) == 0)
+    if (json.containsKey("state"))
     {
-      tile->setColorToDefault();
+      const char *state = json["state"];
+      if (strcmp(state, "on") == 0)
+      {
+        tile->setState(true);
+      }
+      else if (strcmp(state, "off") == 0)
+      {
+        tile->setState(false);
+      }
+      else
+      {
+        wt32.print(F("[wpan] invalid state: "));
+        wt32.println(state);
+      }
     }
-    else
+
+    if (json.containsKey("sublabel"))
     {
-      tile->setColor(red, green, blue);
+      tile->setSubLabel(json["sublabel"]);
     }
-  }
-  
-  if (json.containsKey("number") || json.containsKey("units"))
-  {
-    tile->setNumber(json["number"], json["units"]);
-  }
 
-  if (json.containsKey("text"))
-  {
-    tile->setIconText(json["text"]);
-  }
-
-  if (json.containsKey("dropdownlist"))
-  {
-    tile->setDropDownList(json["dropdownlist"]);
-  }
-
-  if (json.containsKey("dropdownselect"))
-  {
-    tile->setDropDownIndex(json["dropdownselect"].as<uint>());
-  }
-
-  if (json.containsKey("dropdownlabel"))
-  {
-    tile->setDropDownLabel(json["dropdownlabel"]);
-  }
-}
-
-void jsonSetLockStateCommand(const char* lockState)
-{
-  // early exit if no valid keypad exist
-  if (!lv_obj_is_valid(keyPad.ovlPanel)) return;
-
-  if (strcmp(lockState, "locked") == 0)
-  {
-    keyPad.setLockState(true);
-  }
-  if (strcmp(lockState, "unlocked") == 0)
-  {
-    keyPad.setLockState(false);
-  }
-  if (strcmp(lockState, "failed") == 0)
-  {
-    keyPad.setFailed();
-  }
-  if (strcmp(lockState, "close") == 0)
-  {
-    keyPad.close();
-  }
-}
-
-void jsonCommand(JsonVariant json)
-{
-  if (json.containsKey("backlight"))
-  {
-    int blValue = json["backlight"]["brightness"].as<int>();
-    _setBackLight(blValue, true);
-    setBackLightSliderValue(blValue);
-  }
-
-  if (json.containsKey("message"))
-  {
-    _showMsgBox(json["message"]["title"], json["message"]["text"]);
-  }
-
-  if (json.containsKey("setstate"))
-  {
-    for (JsonVariant states : json["setstate"].as<JsonArray>())
+    if (json.containsKey("level"))
     {
-      jsonSetStateCommand(states);
+      tile->setLevel(json["level"].as<int>(), false);
+    }
+
+    if (json.containsKey("color"))
+    {
+      int red = json["color"][0];
+      int green = json["color"][1];
+      int blue = json["color"][2];
+
+      // if all zero reset to colorOn
+      if ((red + green + blue) == 0)
+      {
+        tile->setColorToDefault();
+      }
+      else
+      {
+        tile->setColor(red, green, blue);
+      }
+    }
+
+    if (json.containsKey("number") || json.containsKey("units"))
+    {
+      tile->setNumber(json["number"], json["units"]);
+    }
+
+    if (json.containsKey("text"))
+    {
+      tile->setIconText(json["text"]);
+    }
+
+    if (json.containsKey("dropdownlist"))
+    {
+      tile->setDropDownList(json["dropdownlist"]);
+    }
+
+    if (json.containsKey("dropdownselect"))
+    {
+      tile->setDropDownIndex(json["dropdownselect"].as<uint>());
+    }
+
+    if (json.containsKey("dropdownlabel"))
+    {
+      tile->setDropDownLabel(json["dropdownlabel"]);
     }
   }
 
-  if (json.containsKey("setlockstate"))
+  void jsonSetLockStateCommand(const char *lockState)
   {
-    jsonSetLockStateCommand(json["setlockstate"]["set"]);
+    // early exit if no valid keypad exist
+    if (!lv_obj_is_valid(keyPad.ovlPanel))
+      return;
+
+    if (strcmp(lockState, "locked") == 0)
+    {
+      keyPad.setLockState(true);
+    }
+    if (strcmp(lockState, "unlocked") == 0)
+    {
+      keyPad.setLockState(false);
+    }
+    if (strcmp(lockState, "failed") == 0)
+    {
+      keyPad.setFailed();
+    }
+    if (strcmp(lockState, "close") == 0)
+    {
+      keyPad.close();
+    }
   }
 
-  if (json.containsKey("screen"))
+  void jsonCommand(JsonVariant json)
   {
-    int screenIdx = json["screen"]["select"].as<int>();
+    if (json.containsKey("backlight"))
+    {
+      int blValue = json["backlight"]["brightness"].as<int>();
+      _setBackLight(blValue, true);
+      setBackLightSliderValue(blValue);
+    }
 
-    wt32.print(F("[wpan] screen select: "));
-    wt32.println(screenIdx);
+    if (json.containsKey("message"))
+    {
+      _showMsgBox(json["message"]["title"], json["message"]["text"]);
+    }
 
-    selectScreen(screenIdx);
+    if (json.containsKey("setstate"))
+    {
+      for (JsonVariant states : json["setstate"].as<JsonArray>())
+      {
+        jsonSetStateCommand(states);
+      }
+    }
+
+    if (json.containsKey("setlockstate"))
+    {
+      jsonSetLockStateCommand(json["setlockstate"]["set"]);
+    }
+
+    if (json.containsKey("screen"))
+    {
+      int screenIdx = json["screen"]["select"].as<int>();
+
+      wt32.print(F("[wpan] screen select: "));
+      wt32.println(screenIdx);
+
+      selectScreen(screenIdx);
+    }
   }
-}
 
-/**
-  init and start LVGL pages
- */
+  /**
+    init and start LVGL pages
+   */
 
-// define the defaults for lvgl objects
-static lv_style_t style_my_btn;
+  // define the defaults for lvgl objects
+  static lv_style_t style_my_btn;
 
-static void new_theme_apply_cb(lv_theme_t *th, lv_obj_t *obj)
-{
-  LV_UNUSED(th);
-  if ((lv_obj_check_type(obj, &lv_btn_class)) || (lv_obj_check_type(obj, &lv_imgbtn_class)))
+  static void new_theme_apply_cb(lv_theme_t * th, lv_obj_t * obj)
   {
-    lv_obj_add_style(obj, &style_my_btn, 0);
+    LV_UNUSED(th);
+    if ((lv_obj_check_type(obj, &lv_btn_class)) || (lv_obj_check_type(obj, &lv_imgbtn_class)))
+    {
+      lv_obj_add_style(obj, &style_my_btn, 0);
+    }
   }
-}
-static void new_theme_init_and_set(void)
-{
-  /*Initialize the styles*/
-  lv_style_init(&style_my_btn);
-  lv_style_set_bg_color(&style_my_btn, lv_color_hex(0xffffff));
-  lv_style_set_radius(&style_my_btn, 5);
-  /*Initialize the new theme from the current theme*/
-  lv_theme_t *th_act = lv_disp_get_theme(NULL);
-  static lv_theme_t th_new;
-  th_new = *th_act;
-  /*Set the parent theme and the style apply callback for the new theme*/
-  lv_theme_set_parent(&th_new, th_act);
-  lv_theme_set_apply_cb(&th_new, new_theme_apply_cb);
-  /*Assign the new theme to the current display*/
-  lv_disp_set_theme(NULL, &th_new);
-}
+  static void new_theme_init_and_set(void)
+  {
+    /*Initialize the styles*/
+    lv_style_init(&style_my_btn);
+    lv_style_set_bg_color(&style_my_btn, lv_color_hex(0xffffff));
+    lv_style_set_radius(&style_my_btn, 5);
+    /*Initialize the new theme from the current theme*/
+    lv_theme_t *th_act = lv_disp_get_theme(NULL);
+    static lv_theme_t th_new;
+    th_new = *th_act;
+    /*Set the parent theme and the style apply callback for the new theme*/
+    lv_theme_set_parent(&th_new, th_act);
+    lv_theme_set_apply_cb(&th_new, new_theme_apply_cb);
+    /*Assign the new theme to the current display*/
+    lv_disp_set_theme(NULL, &th_new);
+  }
 
-// initialize ui
-void ui_init(void)
-{
-  new_theme_init_and_set();
+  // initialize ui
+  void ui_init(void)
+  {
+    new_theme_init_and_set();
 
-  // HomeScreen
-  createScreen(SCREEN_HOME);
+    // HomeScreen
+    createScreen(SCREEN_HOME);
 
-  // setup Settings Screen as screen[SCREEN_SETTINGS]
-  classScreen &ref = screenVault.add(SCREEN_SETTINGS, 0);
-  screenSettings = classScreenSettings(ref.screen, imgAustin);
-  screenSettings.addEventHandler(backLightSliderEventHandler);
-  ref.createHomeButton(footerButtonEventHandler, imgHome);
-  ref.adScreenEventHandler(screenEventHandler);
-  ref.setLabel("Settings");
+    // setup Settings Screen as screen[SCREEN_SETTINGS]
+    classScreen &ref = screenVault.add(SCREEN_SETTINGS, 0);
+    screenSettings = classScreenSettings(ref.screen, imgAustin);
+    screenSettings.addEventHandler(backLightSliderEventHandler);
+    ref.createHomeButton(footerButtonEventHandler, imgHome);
+    ref.adScreenEventHandler(screenEventHandler);
+    ref.setLabel("Settings");
 
-  updateInfoText();
+    updateInfoText();
 
-  // show HomeScreen
-  screenVault.show(SCREEN_HOME);
-}
+    // show HomeScreen
+    screenVault.show(SCREEN_HOME);
+  }
   /**
     Setup
   */
@@ -1395,6 +1375,10 @@ void setup()
   Serial.begin(SERIAL_BAUD_RATE);
   delay(1000);
   Serial.println(F("[wpan] starting up..."));
+
+  // initialise the Tile_Type_LUT and Img_LUT for later use
+  initTileTypeLut();
+  initImgLut();
 
   // set up for backlight dimming (PWM)
   ledcSetup(BL_PWM_CHANNEL, BL_PWM_FREQ, BL_PWM_RESOLUTION);
