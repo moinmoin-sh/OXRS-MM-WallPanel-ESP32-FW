@@ -34,7 +34,7 @@ typedef struct
 {
   const char *iconStr;
   const void *img;
-} imgLutEntry_t;
+} imgListElement_t;
 
 #define WP_OPA_BG_OFF     26
 #define WP_OPA_BG_ON      255

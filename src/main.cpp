@@ -35,6 +35,7 @@
 #include <classDropDown.h>
 #include <classRemote.h>
 #include <classKeyPad.h>
+#include <classIconList.h>
 
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -131,8 +132,8 @@ OXRS_WT32 wt32;
 // the tile_type_LUT
 tileTypeLutEntry_t tileTypeLut[TT_TYPE_COUNT] = {0};
 
-// the image (icon) LUT
-imgLutEntry_t imgLut[30] = {0};   // TODO  define size according to needs 
+// iconVault holds all icon image name and reference
+classIconList iconVault = classIconList();
 
 // screenVault holds all screens
 classScreenList screenVault = classScreenList();
@@ -176,37 +177,21 @@ void my_print(const char *buf)
 }
 #endif
 
-/*-----------------  img_lut and tile_type_LUT handler  -----------------------*/
-// initialise the image_LUT
-void initImgLut(void)
+/*-----------------  Icon_Vault and tile_type_LUT handler  -----------------------*/
+// initialise the Icon_Vault
+void initIconVault(void)
 {
-  int index = 0;
-  imgLut[index++] = {"blind", imgBlind};
-  imgLut[index++] = {"bulb", imgBulb};
-  imgLut[index++] = {"ceilingfan", imgCeilingFan};
-  imgLut[index++] = {"coffee", imgCoffee};
-  imgLut[index++] = {"door", imgDoor};
-  imgLut[index++] = {"lock", imgUnLocked};
-  imgLut[index++] = {"musik", imgMusic};
-  imgLut[index++] = {"remote", imgRemote};
-  imgLut[index++] = {"speaker", imgSpeaker};
-  imgLut[index++] = {"window", imgWindow};
-  imgLut[index++] = {"3dprint", img3dPrint};
-}
-
-// get image from string
-const void *getIconFromStr(const char* imgStr)
-{
-  const void * img = NULL;
-  for (int i = 0; imgLut[i].iconStr != NULL; i++)
-  {
-    if (strcmp(imgLut[i].iconStr, imgStr) == 0)
-    {
-      img = imgLut[i].img;
-      break;
-    }
-  }
-  return img;
+  iconVault.add({"_blind", imgBlind});
+  iconVault.add({"_bulb", imgBulb});
+  iconVault.add({"_ceilingfan", imgCeilingFan});
+  iconVault.add({"_coffee", imgCoffee});
+  iconVault.add({"_door", imgDoor});
+  iconVault.add({"_lock", imgUnLocked});
+  iconVault.add({"_musik", imgMusic});
+  iconVault.add({"_remote", imgRemote});
+  iconVault.add({"_speaker", imgSpeaker});
+  iconVault.add({"_window", imgWindow});
+  iconVault.add({"_3dprint", img3dPrint});
 }
 
 // initialise the tile_type_LUT
@@ -834,9 +819,11 @@ void createIconEnum(JsonObject parent)
 {
   JsonArray typeEnum = parent.createNestedArray("enum");
 
-  for (int i = 0; imgLut[i].iconStr != NULL; i++)
+  const char *iconStr;
+  iconVault.setIteratorStart();
+  while ((iconStr = iconVault.getNextStr()) != 0)
   {
-    typeEnum.add(imgLut[i].iconStr);
+    typeEnum.add(iconStr);
   }
 }
 
@@ -875,7 +862,7 @@ void createInputTypeEnum(JsonObject parent)
     tileType = parseInputType(typeStr);
 
     // get the icon image
-    img = getIconFromStr(iconStr); 
+    img = iconVault.getIcon(iconStr);
 
     // create new Tile 
     classTile &ref = tileVault.add();
@@ -1378,7 +1365,7 @@ void setup()
 
   // initialise the Tile_Type_LUT and Img_LUT for later use
   initTileTypeLut();
-  initImgLut();
+  initIconVault();
 
   // set up for backlight dimming (PWM)
   ledcSetup(BL_PWM_CHANNEL, BL_PWM_FREQ, BL_PWM_RESOLUTION);
