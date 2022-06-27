@@ -3,27 +3,38 @@
 
 enum tileType_t
 {
-  NONE,
-  BLIND,
-  CEILINGFAN,
-  COFFEE,
-  DOOR,
-  DROPDOWN,
-  LIGHT,
-  LOCK,
-  MUSIC,
-  NUMBER,
-  ONOFF,
-  PLAYER,
-  REMOTE,
-  ROOM,
-  SETTINGS,
-  SPEAKER,
-  TEXT,
-  THERMOMETER,
-  WINDOW,
-  THREEDPRINT
+  TT_NONE,
+  TT_BUTTON_ICON,
+  TT_BUTTON_TEXT,
+  TT_BUTTON_NUMBER,
+  TT_BUTTON_LEVEL_UP,
+  TT_BUTTON_LEVEL_DOWN,
+  TT_INDICATOR_ICON,
+  TT_INDICATOR_TEXT,
+  TT_INDICATOR_NUMBER,
+  TT_COLOR_PICKER,
+  TT_DROPDOWN,
+  TT_KEYPAD,
+  TT_KEYPAD_BLOCKING,
+  TT_REMOTE,
+  TT_LINK,
+  TT_MEDIAPLAYER,
+  TT_TYPE_COUNT // must be the last element
 };
+
+// entry for the tile_type_LUT
+typedef struct
+{
+  int type;
+  const char *typeStr;
+  const void *img;
+} tileTypeLutEntry_t;
+
+typedef struct
+{
+  const char *iconStr;
+  const void *img;
+} imgListElement_t;
 
 #define WP_OPA_BG_OFF     26
 #define WP_OPA_BG_ON      255
