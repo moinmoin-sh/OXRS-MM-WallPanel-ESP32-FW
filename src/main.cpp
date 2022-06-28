@@ -843,13 +843,6 @@ void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *ico
   const void *img = NULL;
   int tileType;
 
-  // exit if screen or tile out of range
-  if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END) || (tileIdx < TILE_START) || (tileIdx > TILE_END))
-  {
-    printf("Config error. screen or tile out of range\n");
-    return;
-  }
-
   // create screen if not exist
   createScreen(screenIdx);
 
@@ -1264,37 +1257,32 @@ void jsonSetLockStateCommand(const char *lockState)
 // add icon from bas64 coded .png image
 void jsonAddIcon(JsonVariant json)
 {
-  // decode image
-  size_t inLen = strlen(json["image"]);
-  size_t outLen = BASE64::decodeLength(json["image"]);
-  uint8_t raw[outLen];
-  BASE64::decode(json["image"], raw);
-
-  // calc widt nd height from image file (start @ pos [16])
-  uint32_t size[2];
-  memcpy(&size[0], &raw[16], 8);
-
-  // prepaare image descriptor 
-  lv_img_dsc_t iconPng;
-  iconPng.header.cf = LV_IMG_CF_RAW_ALPHA;
-  iconPng.header.always_zero = 0;
-  iconPng.header.reserved = 0;
-  iconPng.header.w = (lv_coord_t)((size[0] & 0xff000000) >> 24) + ((size[0] & 0x00ff0000) >> 8);
-  iconPng.header.h = (lv_coord_t)((size[1] & 0xff000000) >> 24) + ((size[1] & 0x00ff0000) >> 8);
-  iconPng.data_size = outLen;
-
-  // create image in ps-ramheap
+  // decode image into ps_ram
   // TODO :
   //    check if ps_alloc successful
   //    free allocated ps_ram if icon was deleted (replaced)
-  void *icon = ps_malloc(sizeof(iconPng) + outLen);
-  memcpy(icon + sizeof(iconPng), raw, outLen);
-  iconPng.data = (const uint8_t *)(icon + sizeof(iconPng));
-  memcpy(icon, &iconPng, sizeof(iconPng));
+  size_t inLen = strlen(json["image"]);
+  size_t outLen = BASE64::decodeLength(json["image"]);
+  uint8_t *raw = (uint8_t *)ps_malloc(outLen);
+  BASE64::decode(json["image"], raw);
+
+  // calc width and height from image file (start @ pos [16])
+  uint32_t size[2];
+  memcpy(&size[0], raw+16, 8);
+
+  // prepaare image descriptor
+  lv_img_dsc_t *iconPng = (lv_img_dsc_t *)ps_malloc(sizeof(lv_img_dsc_t));
+  iconPng->header.cf = LV_IMG_CF_RAW_ALPHA;
+  iconPng->header.always_zero = 0;
+  iconPng->header.reserved = 0;
+  iconPng->header.w = (lv_coord_t)((size[0] & 0xff000000) >> 24) + ((size[0] & 0x00ff0000) >> 8);
+  iconPng->header.h = (lv_coord_t)((size[1] & 0xff000000) >> 24) + ((size[1] & 0x00ff0000) >> 8);
+  iconPng->data_size = outLen;
+  iconPng->data = raw;
 
   // add custom icon to iconVault
   string iconStr = json["name"];
-  iconVault.add({iconStr, icon});
+  iconVault.add({iconStr, iconPng});
 
   // update configutation 
   setConfigSchema();
@@ -1482,6 +1470,7 @@ void setup()
 
   // Set up config/command schema (for self-discovery and adoption)
   setConfigSchema();
+  
 }
 
 /**

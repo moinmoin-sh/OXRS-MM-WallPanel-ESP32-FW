@@ -344,6 +344,7 @@ void OXRS_WT32::setConfigSchema(JsonVariant json)
 
 void OXRS_WT32::setCommandSchema(JsonVariant json)
 {
+  _fwCommandSchema.clear();
   _mergeJson(_fwCommandSchema.as<JsonVariant>(), json);
 }
 
