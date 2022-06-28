@@ -1,5 +1,7 @@
 #pragma once
 #include <Arduino.h>
+#include <string>
+using namespace std;
 
 enum tileType_t
 {
@@ -32,7 +34,7 @@ typedef struct
 
 typedef struct
 {
-  const char *iconStr;
+  string iconStr;
   const void *img;
 } imgListElement_t;
 

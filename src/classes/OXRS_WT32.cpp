@@ -338,6 +338,7 @@ void OXRS_WT32::loop(void)
 
 void OXRS_WT32::setConfigSchema(JsonVariant json)
 {
+  _fwConfigSchema.clear();
   _mergeJson(_fwConfigSchema.as<JsonVariant>(), json);
 }
 
