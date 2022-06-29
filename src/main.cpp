@@ -196,14 +196,10 @@ void initIconVault(void)
 // initialise the tile_type_LUT
 void initTileTypeLut(void)
 {
-  tileTypeLut[TT_BUTTON_ICON] = {TT_BUTTON_ICON, "button_icon", imgBulb};
-  tileTypeLut[TT_BUTTON_TEXT] = {TT_BUTTON_TEXT, "button_text", NULL};
-  tileTypeLut[TT_BUTTON_NUMBER] = {TT_BUTTON_NUMBER, "button_number", NULL};
+  tileTypeLut[TT_BUTTON] = {TT_BUTTON, "button", imgBulb};
   tileTypeLut[TT_BUTTON_LEVEL_UP] = {TT_BUTTON_LEVEL_UP, "button_level_up", imgBulb};
   tileTypeLut[TT_BUTTON_LEVEL_DOWN] = {TT_BUTTON_LEVEL_DOWN, "button_level_down", imgBulb};
-  tileTypeLut[TT_INDICATOR_ICON] = {TT_INDICATOR_ICON, "indicator_icon", imgWindow};
-  tileTypeLut[TT_INDICATOR_TEXT] = {TT_INDICATOR_TEXT, "indicator_text", NULL};
-  tileTypeLut[TT_INDICATOR_NUMBER] = {TT_INDICATOR_NUMBER, "indicator_number", NULL};
+  tileTypeLut[TT_INDICATOR] = {TT_INDICATOR, "indicator", imgWindow};
   tileTypeLut[TT_COLOR_PICKER] = {TT_COLOR_PICKER, "color_picker", NULL};
   tileTypeLut[TT_DROPDOWN] = {TT_DROPDOWN, "drop_down", NULL};
   tileTypeLut[TT_KEYPAD] = {TT_KEYPAD, "keypad", imgUnLocked};
@@ -870,7 +866,7 @@ void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *ico
   }
 
   // set the event handler if NOT (INDICATOR_*)
-  if (!((tileType == TT_INDICATOR_ICON) || (tileType == TT_INDICATOR_TEXT) || (tileType == TT_INDICATOR_NUMBER)))
+  if (tileType != TT_INDICATOR)
   {
     ref.addEventHandler(tileEventHandler);
   }
@@ -1286,6 +1282,33 @@ void jsonAddIcon(JsonVariant json)
 
   // update configutation 
   setConfigSchema();
+}
+
+// set tile bg from bas64 coded .png image
+void jsonSetBg(JsonVariant json)
+{
+  // decode image into ps_ram
+  // TODO :
+  //    check if ps_alloc successful
+  //    free allocated ps_ram if icon was deleted (replaced)
+  size_t inLen = strlen(json["image"]);
+  size_t outLen = BASE64::decodeLength(json["image"]);
+  uint8_t *raw = (uint8_t *)ps_malloc(outLen);
+  BASE64::decode(json["image"], raw);
+
+  // calc width and height from image file (start @ pos [16])
+  uint32_t size[2];
+  memcpy(&size[0], raw + 16, 8);
+
+  // prepaare image descriptor
+  lv_img_dsc_t *iconPng = (lv_img_dsc_t *)ps_malloc(sizeof(lv_img_dsc_t));
+  iconPng->header.cf = LV_IMG_CF_RAW_ALPHA;
+  iconPng->header.always_zero = 0;
+  iconPng->header.reserved = 0;
+  iconPng->header.w = (lv_coord_t)((size[0] & 0xff000000) >> 24) + ((size[0] & 0x00ff0000) >> 8);
+  iconPng->header.h = (lv_coord_t)((size[1] & 0xff000000) >> 24) + ((size[1] & 0x00ff0000) >> 8);
+  iconPng->data_size = outLen;
+  iconPng->data = raw;
 }
 
 void jsonCommand(JsonVariant json)
