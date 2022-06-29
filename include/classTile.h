@@ -20,6 +20,7 @@ protected:
   lv_obj_t *_dropDown = NULL;
   lv_obj_t *_dropDownList = NULL;
   lv_obj_t *_dropDownLabel = NULL;
+  lv_obj_t *_imgBg = NULL;
 
   int _screenIdx = 0;
   int _tileIdx = 0;
@@ -56,6 +57,7 @@ public :
   void setColor(int red, int green, int blue);
   void setColorToDefault(void);
   void setNumber(const char *number, const char *units);
+  void setBgImage(const void*img, int zoom);
   void setLink(int linkedScreen);
   void setKeyPadEnable(bool enable);
   void setIconForStateOn(const void* imgStateOn);

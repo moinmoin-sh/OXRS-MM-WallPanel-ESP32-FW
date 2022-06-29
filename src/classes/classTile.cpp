@@ -15,6 +15,9 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   // image button
   _btn = lv_imgbtn_create(_parent);
 
+  // placeholder for full image
+  _imgBg = lv_img_create(_btn);
+
   lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_RELEASED, img, NULL, NULL);
   lv_obj_set_style_bg_opa(_btn, WP_OPA_BG_OFF, LV_PART_MAIN | LV_IMGBTN_STATE_RELEASED);
   lv_obj_set_style_img_recolor(_btn, lv_color_hex(0xffffff), LV_PART_MAIN | LV_IMGBTN_STATE_RELEASED);
@@ -221,6 +224,29 @@ void classTile::setNumber(const char *number, const char *units)
   lv_obj_set_style_text_font(_unitLabel, &lv_font_montserrat_20, 0);
   lv_label_set_text(_unitLabel, units);
   lv_obj_align_to(_unitLabel, _numLabel, LV_ALIGN_OUT_RIGHT_BOTTOM, 5, 5);
+}
+
+void classTile::setBgImage(const void *img, int zoom)
+{
+  if (zoom == 0)  zoom = 100;
+  if (zoom > 200) zoom = 200;
+  if (zoom < 50)  zoom = 50;
+
+  // free old image if exist
+  if (_imgBg)
+  {
+    lv_img_dsc_t *oldImg = (lv_img_dsc_t *)lv_img_get_src(_imgBg);
+    if (oldImg)
+    {
+      free((void*)oldImg->data);
+      free(oldImg);
+    }
+  }
+
+  lv_img_set_src(_imgBg, img);
+  lv_img_set_zoom(_imgBg, (256 * zoom) / 100);
+  lv_obj_align(_imgBg, LV_ALIGN_CENTER, 0, 00);
+  lv_obj_set_size(_imgBg, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
 }
 
 // this button calls a new screen (linkScreen)

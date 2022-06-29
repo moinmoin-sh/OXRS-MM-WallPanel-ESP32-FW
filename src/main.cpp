@@ -1127,6 +1127,35 @@ void setConfigSchema()
   Command handler
  */
 
+// decode base64 encoded png image to ps_ram
+lv_img_dsc_t *decodeBase64ToImg(const char *imageBase64)
+{
+  // decode image into ps_ram
+  // TODO :
+  //    check if ps_alloc successful
+  //    free allocated ps_ram if icon was deleted (replaced)
+  size_t inLen = strlen(imageBase64);
+  size_t outLen = BASE64::decodeLength(imageBase64);
+  uint8_t *raw = (uint8_t *)ps_malloc(outLen);
+  BASE64::decode(imageBase64, raw);
+
+  // calc width and height from image file (start @ pos [16])
+  uint32_t size[2];
+  memcpy(&size[0], raw + 16, 8);
+
+  // prepaare image descriptor
+  lv_img_dsc_t *imgPng = (lv_img_dsc_t *)ps_malloc(sizeof(lv_img_dsc_t));
+  imgPng->header.cf = LV_IMG_CF_RAW_ALPHA;
+  imgPng->header.always_zero = 0;
+  imgPng->header.reserved = 0;
+  imgPng->header.w = (lv_coord_t)((size[0] & 0xff000000) >> 24) + ((size[0] & 0x00ff0000) >> 8);
+  imgPng->header.h = (lv_coord_t)((size[1] & 0xff000000) >> 24) + ((size[1] & 0x00ff0000) >> 8);
+  imgPng->data_size = outLen;
+  imgPng->data = raw;
+
+  return imgPng;
+}
+
 void jsonSetStateCommand(JsonVariant json)
 {
   int screenIdx = json["screen"].as<int>();
@@ -1210,6 +1239,11 @@ void jsonSetStateCommand(JsonVariant json)
     tile->setIconText(json["text"]);
   }
 
+  if (json.containsKey("image"))
+  {
+    tile->setBgImage(decodeBase64ToImg(json["image"]), json["zoom"]);
+  }
+
   if (json.containsKey("dropdownlist"))
   {
     tile->setDropDownList(json["dropdownlist"]);
@@ -1257,24 +1291,8 @@ void jsonAddIcon(JsonVariant json)
   // TODO :
   //    check if ps_alloc successful
   //    free allocated ps_ram if icon was deleted (replaced)
-  size_t inLen = strlen(json["image"]);
-  size_t outLen = BASE64::decodeLength(json["image"]);
-  uint8_t *raw = (uint8_t *)ps_malloc(outLen);
-  BASE64::decode(json["image"], raw);
 
-  // calc width and height from image file (start @ pos [16])
-  uint32_t size[2];
-  memcpy(&size[0], raw+16, 8);
-
-  // prepaare image descriptor
-  lv_img_dsc_t *iconPng = (lv_img_dsc_t *)ps_malloc(sizeof(lv_img_dsc_t));
-  iconPng->header.cf = LV_IMG_CF_RAW_ALPHA;
-  iconPng->header.always_zero = 0;
-  iconPng->header.reserved = 0;
-  iconPng->header.w = (lv_coord_t)((size[0] & 0xff000000) >> 24) + ((size[0] & 0x00ff0000) >> 8);
-  iconPng->header.h = (lv_coord_t)((size[1] & 0xff000000) >> 24) + ((size[1] & 0x00ff0000) >> 8);
-  iconPng->data_size = outLen;
-  iconPng->data = raw;
+  lv_img_dsc_t *iconPng = decodeBase64ToImg(json["image"]);
 
   // add custom icon to iconVault
   string iconStr = json["name"];
@@ -1282,33 +1300,6 @@ void jsonAddIcon(JsonVariant json)
 
   // update configutation 
   setConfigSchema();
-}
-
-// set tile bg from bas64 coded .png image
-void jsonSetBg(JsonVariant json)
-{
-  // decode image into ps_ram
-  // TODO :
-  //    check if ps_alloc successful
-  //    free allocated ps_ram if icon was deleted (replaced)
-  size_t inLen = strlen(json["image"]);
-  size_t outLen = BASE64::decodeLength(json["image"]);
-  uint8_t *raw = (uint8_t *)ps_malloc(outLen);
-  BASE64::decode(json["image"], raw);
-
-  // calc width and height from image file (start @ pos [16])
-  uint32_t size[2];
-  memcpy(&size[0], raw + 16, 8);
-
-  // prepaare image descriptor
-  lv_img_dsc_t *iconPng = (lv_img_dsc_t *)ps_malloc(sizeof(lv_img_dsc_t));
-  iconPng->header.cf = LV_IMG_CF_RAW_ALPHA;
-  iconPng->header.always_zero = 0;
-  iconPng->header.reserved = 0;
-  iconPng->header.w = (lv_coord_t)((size[0] & 0xff000000) >> 24) + ((size[0] & 0x00ff0000) >> 8);
-  iconPng->header.h = (lv_coord_t)((size[1] & 0xff000000) >> 24) + ((size[1] & 0x00ff0000) >> 8);
-  iconPng->data_size = outLen;
-  iconPng->data = raw;
 }
 
 void jsonCommand(JsonVariant json)
@@ -1431,6 +1422,7 @@ void setup()
 
   // start lvgl
   lv_init();
+  lv_img_cache_set_size(10);
   String LVGL_Arduino = "Hello Arduino! ";
   LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Serial.println(LVGL_Arduino);
