@@ -1,17 +1,15 @@
 #pragma once
 #include <Arduino.h>
+#include <string>
+using namespace std;
 
 enum tileType_t
 {
   TT_NONE,
-  TT_BUTTON_ICON,
-  TT_BUTTON_TEXT,
-  TT_BUTTON_NUMBER,
+  TT_BUTTON,
   TT_BUTTON_LEVEL_UP,
   TT_BUTTON_LEVEL_DOWN,
-  TT_INDICATOR_ICON,
-  TT_INDICATOR_TEXT,
-  TT_INDICATOR_NUMBER,
+  TT_INDICATOR,
   TT_COLOR_PICKER,
   TT_DROPDOWN,
   TT_KEYPAD,
@@ -32,7 +30,7 @@ typedef struct
 
 typedef struct
 {
-  const char *iconStr;
+  string iconStr;
   const void *img;
 } imgListElement_t;
 
