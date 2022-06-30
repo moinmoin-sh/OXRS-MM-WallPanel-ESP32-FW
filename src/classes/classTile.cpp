@@ -125,6 +125,20 @@ void classTile::_reColorAll(lv_color_t color, lv_style_selector_t selector)
   lv_obj_set_style_text_color(_txtIconText, color, selector);
 }
 
+// free ps_ram heap used by old image if exist
+void classTile::_freeImageHeap(void)
+{
+  if (_imgBg)
+  {
+    lv_img_dsc_t *oldImg = (lv_img_dsc_t *)lv_img_get_src(_imgBg);
+    if (oldImg)
+    {
+      free((void *)oldImg->data);
+      free(oldImg);
+    }
+  }
+}
+
 classTile::classTile(lv_obj_t *parent, const void *img)
 {
   _button(parent, img);
@@ -140,6 +154,7 @@ classTile::~classTile()
 {
   if (_btn)
   {
+    _freeImageHeap();
     lv_obj_del(_btn);
   }
 }
@@ -159,7 +174,7 @@ void classTile::registerTile(int screenIdx, int tileIdx, int type, const char* t
   tileId.idx.screen = screenIdx;
   tileId.idx.tile = tileIdx;
   _type = type;
-  strcpy(_typeStr, typeStr);
+  _typeStr =  typeStr;
 
   // position tile in grid after tile and screen are known
   int row = (tileIdx - 1) / 2;
@@ -233,15 +248,7 @@ void classTile::setBgImage(const void *img, int zoom)
   if (zoom < 50)  zoom = 50;
 
   // free old image if exist
-  if (_imgBg)
-  {
-    lv_img_dsc_t *oldImg = (lv_img_dsc_t *)lv_img_get_src(_imgBg);
-    if (oldImg)
-    {
-      free((void*)oldImg->data);
-      free(oldImg);
-    }
-  }
+  _freeImageHeap();
 
   lv_img_set_src(_imgBg, img);
   lv_img_set_zoom(_imgBg, (256 * zoom) / 100);
@@ -293,7 +300,7 @@ int classTile::getType(void)
 
 const char* classTile::getTypeStr(void)
 {
-  return _typeStr;
+  return _typeStr.c_str();
 }
 
 bool classTile::getState(void)

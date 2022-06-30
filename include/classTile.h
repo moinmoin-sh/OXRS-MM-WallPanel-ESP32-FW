@@ -25,7 +25,7 @@ protected:
   int _screenIdx = 0;
   int _tileIdx = 0;
   int _type = 0;
-  char _typeStr[16];
+  string _typeStr;
   int _linkedScreen = 0;
   bool _state = false;
   bool _keyPadEnable = false;
@@ -38,6 +38,7 @@ protected:
   void _button(lv_obj_t *parent, const void *img);
   void _reColorAll(lv_color_t color, lv_style_selector_t selector);
   void _setIconTextFromIndex(void);
+  void _freeImageHeap();
 
 public :
   tileId_t tileId;

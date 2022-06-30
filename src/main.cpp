@@ -1290,13 +1290,25 @@ void jsonAddIcon(JsonVariant json)
   // decode image into ps_ram
   // TODO :
   //    check if ps_alloc successful
-  //    free allocated ps_ram if icon was deleted (replaced)
 
+  // check if named icon exist, if yes -> get descriptor
+  lv_img_dsc_t *oldIcon = (lv_img_dsc_t *)iconVault.getIcon(json["name"]);
+
+  // decode new icon
   lv_img_dsc_t *iconPng = decodeBase64ToImg(json["image"]);
 
-  // add custom icon to iconVault
+  // add custom icon to iconVault (deletes possible existing one)
   string iconStr = json["name"];
   iconVault.add({iconStr, iconPng});
+
+  // free ps_ram heap if named icon existed allready
+  if (oldIcon)
+  {
+    printf("before [icon del] %d\n", ESP.getFreePsram());
+    free((void *)oldIcon->data);
+    free(oldIcon);
+    printf("after [icon del] %d\n", ESP.getFreePsram());
+  }
 
   // update configutation 
   setConfigSchema();
