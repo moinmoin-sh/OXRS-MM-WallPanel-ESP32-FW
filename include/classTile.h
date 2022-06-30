@@ -24,7 +24,7 @@ protected:
   int _screenIdx = 0;
   int _tileIdx = 0;
   int _type = 0;
-  char _typeStr[16];
+  string _typeStr;
   int _linkedScreen = 0;
   bool _state = false;
   bool _keyPadEnable = false;
