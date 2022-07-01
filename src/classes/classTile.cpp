@@ -267,12 +267,12 @@ void classTile::setBgImage(lv_img_dsc_t *img, int zoom, int posOffsX, int posOff
   int imgH = (img->header.h * zoom) / 100;
   int tileW = lv_obj_get_width(_btn);
   int tileH = lv_obj_get_height(_btn);
-  if (posOffsX <= -100)    posOffsX = -(tileW / 2 - imgW / 2) - 1;
-  if (posOffsX >= 100)     posOffsX = (tileW / 2 - imgW / 2) + 1;
-  if (posOffsY <= -100)    posOffsY = -(tileH / 2 - imgH / 2) - 1;
-  if (posOffsY >= 100)     posOffsY = (tileH / 2 - imgH / 2) + 1;
+  if (posOffsX <= -100)    posOffsX = -(tileW / 2 - imgW / 2) - 1;    // left
+  if (posOffsX >= 100)     posOffsX = +(tileW / 2 - imgW / 2) + 1;    // right
+  if (posOffsY <= -100)    posOffsY = -(tileH / 2 - imgH / 2) - 1;    // bottom
+  if (posOffsY >= 100)     posOffsY = +(tileH / 2 - imgH / 2) + 1;    // top
 
-  lv_obj_align(_imgBg, LV_ALIGN_CENTER, posOffsX, posOffsY);
+  lv_obj_align(_imgBg, LV_ALIGN_CENTER, posOffsX, posOffsY * -1);
   lv_obj_set_style_radius(_imgBg, 5, 0);
   lv_obj_set_style_clip_corner(_imgBg, true, 0);
 }
