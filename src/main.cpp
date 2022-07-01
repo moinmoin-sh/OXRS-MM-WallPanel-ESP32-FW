@@ -191,6 +191,7 @@ void initIconVault(void)
   iconVault.add({string("_speaker"), imgSpeaker});
   iconVault.add({string("_window"), imgWindow});
   iconVault.add({string("_3dprint"), img3dPrint});
+  iconVault.add({string("_onoff"), imgOnOff});
 }
 
 // initialise the tile_type_LUT
