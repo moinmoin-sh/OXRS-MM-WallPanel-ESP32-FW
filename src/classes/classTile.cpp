@@ -175,7 +175,7 @@ void classTile::registerTile(int screenIdx, int tileIdx, int type, const char* t
   tileId.idx.screen = screenIdx;
   tileId.idx.tile = tileIdx;
   _type = type;
-  _typeStr =  typeStr;
+  _typeStr = typeStr;
 
   // position tile in grid after tile and screen are known
   int row = (tileIdx - 1) / 2;
