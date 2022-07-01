@@ -1133,8 +1133,11 @@ lv_img_dsc_t *decodeBase64ToImg(const char *imageBase64)
   // decode image into ps_ram
   // TODO :
   //    check if ps_alloc successful
-  //    free allocated ps_ram if icon was deleted (replaced)
   size_t inLen = strlen(imageBase64);
+  // exit if no data to decode
+  if(inLen == 0)
+    return NULL;
+
   size_t outLen = BASE64::decodeLength(imageBase64);
   uint8_t *raw = (uint8_t *)ps_malloc(outLen);
   BASE64::decode(imageBase64, raw);
@@ -1241,7 +1244,7 @@ void jsonSetStateCommand(JsonVariant json)
 
   if (json.containsKey("image"))
   {
-    tile->setBgImage(decodeBase64ToImg(json["image"]), json["zoom"]);
+    tile->setBgImage(decodeBase64ToImg(json["image"]), json["zoom"], json["posOffset"][0], json["posOffset"][1]);
   }
 
   if (json.containsKey("dropdownlist"))
@@ -1304,10 +1307,8 @@ void jsonAddIcon(JsonVariant json)
   // free ps_ram heap if named icon existed allready
   if (oldIcon)
   {
-    printf("before [icon del] %d\n", ESP.getFreePsram());
     free((void *)oldIcon->data);
     free(oldIcon);
-    printf("after [icon del] %d\n", ESP.getFreePsram());
   }
 
   // update configutation 
