@@ -1233,6 +1233,11 @@ void jsonSetStateCommand(JsonVariant json)
     }
   }
 
+  if (json.containsKey("icon"))
+  {
+    tile->setIcon(iconVault.getIcon(json["icon"]));
+  }
+
   if (json.containsKey("number") || json.containsKey("units"))
   {
     tile->setNumber(json["number"], json["units"]);

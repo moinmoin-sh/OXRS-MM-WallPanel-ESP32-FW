@@ -11,6 +11,8 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   _parent = parent;
   _img = img;
   _imgOn = img;
+  _imgConfig = img;
+  _imgOnConfig = img;
 
   // image button
   _btn = lv_imgbtn_create(_parent);
@@ -340,6 +342,24 @@ void classTile::setIconForStateOn(const void *imgStateOn)
   _imgOn = (imgStateOn != NULL) ? imgStateOn : _img;
   lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, _imgOn, NULL, NULL);
   lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, _imgOn, NULL, NULL);
+}
+
+// set icon for current state
+void classTile::setIcon(const void *imgIcon)
+{
+  if (lv_obj_get_state(_btn) & LV_STATE_CHECKED)
+  {
+    _imgOn = (imgIcon != NULL) ? imgIcon : _imgOnConfig;
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, _imgOn, NULL, NULL);
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, _imgOn, NULL, NULL);
+  }
+  else
+  {
+    _img = (imgIcon != NULL) ? imgIcon : _imgConfig;
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_RELEASED, _img, NULL, NULL);
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_PRESSED, _img, NULL, NULL);
+  }
+  lv_obj_invalidate(_btn);
 }
 
 // replaces the existing icon by selected text, reverts to icon if text is empty
