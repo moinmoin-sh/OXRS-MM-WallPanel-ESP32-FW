@@ -20,6 +20,7 @@ protected:
   lv_obj_t *_dropDown = NULL;
   lv_obj_t *_dropDownList = NULL;
   lv_obj_t *_dropDownLabel = NULL;
+  lv_obj_t *_imgBg = NULL;
 
   int _screenIdx = 0;
   int _tileIdx = 0;
@@ -32,11 +33,14 @@ protected:
   bool _topDownMode = false;
   const void *_img = NULL;
   const void *_imgOn = NULL;
+  const void *_imgConfig = NULL;
+  const void *_imgOnConfig = NULL;
   uint16_t _dropDownIndex = 0;
 
   void _button(lv_obj_t *parent, const void *img);
   void _reColorAll(lv_color_t color, lv_style_selector_t selector);
   void _setIconTextFromIndex(void);
+  void _freeImageHeap();
 
 public :
   tileId_t tileId;
@@ -55,7 +59,9 @@ public :
   void setColor(lv_color_t color);
   void setColor(int red, int green, int blue);
   void setColorToDefault(void);
+  void setIcon(const void *imgIcon);
   void setNumber(const char *number, const char *units);
+  void setBgImage(lv_img_dsc_t *img, int zoom, int posOffsX, int posOffsY);
   void setLink(int linkedScreen);
   void setKeyPadEnable(bool enable);
   void setIconForStateOn(const void* imgStateOn);

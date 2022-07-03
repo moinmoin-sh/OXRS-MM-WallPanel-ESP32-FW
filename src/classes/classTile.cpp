@@ -11,9 +11,14 @@ void classTile::_button(lv_obj_t *parent, const void *img)
   _parent = parent;
   _img = img;
   _imgOn = img;
+  _imgConfig = img;
+  _imgOnConfig = img;
 
   // image button
   _btn = lv_imgbtn_create(_parent);
+
+  // placeholder for full image
+  _imgBg = lv_img_create(_btn);
 
   lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_RELEASED, img, NULL, NULL);
   lv_obj_set_style_bg_opa(_btn, WP_OPA_BG_OFF, LV_PART_MAIN | LV_IMGBTN_STATE_RELEASED);
@@ -122,6 +127,21 @@ void classTile::_reColorAll(lv_color_t color, lv_style_selector_t selector)
   lv_obj_set_style_text_color(_txtIconText, color, selector);
 }
 
+// free ps_ram heap used by old image if exist
+void classTile::_freeImageHeap(void)
+{
+  if (lv_obj_is_valid(_imgBg))
+  {
+    lv_img_dsc_t *oldImg = (lv_img_dsc_t *)lv_img_get_src(_imgBg);
+    if (oldImg)
+    {
+      lv_img_cache_invalidate_src(oldImg);
+      free((void *)oldImg->data);
+      free(oldImg);
+    }
+  }
+}
+
 classTile::classTile(lv_obj_t *parent, const void *img)
 {
   _button(parent, img);
@@ -137,6 +157,7 @@ classTile::~classTile()
 {
   if (_btn)
   {
+    _freeImageHeap();
     lv_obj_del(_btn);
   }
 }
@@ -223,6 +244,41 @@ void classTile::setNumber(const char *number, const char *units)
   lv_obj_align_to(_unitLabel, _numLabel, LV_ALIGN_OUT_RIGHT_BOTTOM, 5, 5);
 }
 
+void classTile::setBgImage(lv_img_dsc_t *img, int zoom, int posOffsX, int posOffsY)
+{
+  if (zoom == 0)  zoom = 100;
+  if (zoom > 200) zoom = 200;
+  if (zoom < 50)  zoom = 50;
+
+  // free old image if exist
+  _freeImageHeap();
+
+  if (img == NULL)
+  {
+    lv_img_set_src(_imgBg, NULL);
+    lv_obj_add_flag(_imgBg, LV_OBJ_FLAG_HIDDEN);
+    return;
+  }
+  lv_obj_clear_flag(_imgBg, LV_OBJ_FLAG_HIDDEN);
+  lv_img_set_src(_imgBg, img);
+  lv_img_set_zoom(_imgBg, (256 * zoom) / 100);
+  lv_obj_set_size(_imgBg, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+
+  // aling image to tile edge if posOffsX / -Y  >= abs(100)
+  int imgW = (img->header.w * zoom) / 100;
+  int imgH = (img->header.h * zoom) / 100;
+  int tileW = lv_obj_get_width(_btn);
+  int tileH = lv_obj_get_height(_btn);
+  if (posOffsX <= -100)    posOffsX = -(tileW / 2 - imgW / 2) - 1;    // left
+  if (posOffsX >= 100)     posOffsX = +(tileW / 2 - imgW / 2) + 1;    // right
+  if (posOffsY <= -100)    posOffsY = -(tileH / 2 - imgH / 2) - 1;    // bottom
+  if (posOffsY >= 100)     posOffsY = +(tileH / 2 - imgH / 2) + 1;    // top
+
+  lv_obj_align(_imgBg, LV_ALIGN_CENTER, posOffsX, posOffsY * -1);
+  lv_obj_set_style_radius(_imgBg, 5, 0);
+  lv_obj_set_style_clip_corner(_imgBg, true, 0);
+}
+
 // this button calls a new screen (linkScreen)
 void classTile::setLink(int linkScreen)
 {
@@ -286,6 +342,24 @@ void classTile::setIconForStateOn(const void *imgStateOn)
   _imgOn = (imgStateOn != NULL) ? imgStateOn : _img;
   lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, _imgOn, NULL, NULL);
   lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, _imgOn, NULL, NULL);
+}
+
+// set icon for current state
+void classTile::setIcon(const void *imgIcon)
+{
+  if (lv_obj_get_state(_btn) & LV_STATE_CHECKED)
+  {
+    _imgOn = (imgIcon != NULL) ? imgIcon : _imgOnConfig;
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_RELEASED, _imgOn, NULL, NULL);
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_CHECKED_PRESSED, _imgOn, NULL, NULL);
+  }
+  else
+  {
+    _img = (imgIcon != NULL) ? imgIcon : _imgConfig;
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_RELEASED, _img, NULL, NULL);
+    lv_imgbtn_set_src(_btn, LV_IMGBTN_STATE_PRESSED, _img, NULL, NULL);
+  }
+  lv_obj_invalidate(_btn);
 }
 
 // replaces the existing icon by selected text, reverts to icon if text is empty
