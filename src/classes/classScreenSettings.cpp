@@ -42,7 +42,7 @@ classScreenSettings::classScreenSettings(lv_obj_t *parent, const void *img)
 
   // ui_Slider2
   _slider = lv_slider_create(_panelSlider);
-  lv_slider_set_range(_slider, 0, 100);
+  lv_slider_set_range(_slider, 1, 100);
   lv_slider_set_value(_slider, 50, LV_ANIM_OFF);
   // if (lv_slider_get_mode(_slider) == LV_SLIDER_MODE_RANGE)
   lv_slider_set_left_value(_slider, 2, LV_ANIM_OFF);

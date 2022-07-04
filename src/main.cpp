@@ -113,9 +113,11 @@ const void *imgLocked = &ios_locked_60;
 const void *imgUnLocked = &ios_unlocked_60;
 const void *imgCeilingFan = &ios_ceiling_fan_60;
 
-int _act_BackLight;
+int _actBackLight;
+int _retainedBackLight;
 connectionState_t _connectionState = CONNECTED_NONE;
-uint32_t _noActivityTimeOut = 0L;
+uint32_t _noActivityTimeOutToHome = 0L;
+uint32_t _noActivityTimeOutToSleep = 0L;
 
 #define DEFAULT_COLOR_ON_RED   91
 #define DEFAULT_COLOR_ON_GREEN 190
@@ -366,7 +368,7 @@ void publishMsgBoxClosedEvent(void)
 void publishBackLightTelemetry(void)
 {
   StaticJsonDocument<32> json;
-  json["backlight"] = _act_BackLight;
+  json["backlight"] = _actBackLight;
   wt32.publishTelemetry(json.as<JsonVariant>());
 }
 
@@ -378,7 +380,7 @@ void _setBackLight(int val, bool sendTelemetry)
   if (val > 100)
     val = 100;
   ledcWrite(BL_PWM_CHANNEL, 255 * val / 100);
-  _act_BackLight = val;
+  _actBackLight = val;
   if (sendTelemetry)
     publishBackLightTelemetry();
 }
@@ -419,14 +421,15 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_REL;
     return;
   }
-  // touch at low backlight
-  if (_act_BackLight == 0)
+  // touch detected while backlight = 0
+  if (_actBackLight == 0)
   {
-    _setBackLight(50, true);
-    setBackLightSliderValue(50);
-    data->state = LV_INDEV_STATE_REL;
+    _setBackLight(_retainedBackLight, true);
+    setBackLightSliderValue(_retainedBackLight);
     delay(200);
-    return;
+    // mimic keypress in top/left corner (no sensitive area)
+    ts.x = 0;
+    ts.y = 0;
   }
   // get coordinates and write into point structure
   data->point.x = ts.x;
@@ -443,14 +446,31 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 void checkNoAvtivity(void)
 {
   // observer disabled
-  if (_noActivityTimeOut == 0)
-    return;
-  // Screen is HomeScreen
-  if (lv_scr_act() == screenVault.get(SCREEN_HOME)->screen)
-    return;
-  // time elapsed, jump to HomeScreen
-  if (lv_disp_get_inactive_time(NULL) > _noActivityTimeOut)
-    screenVault.show(SCREEN_HOME);
+  if (_noActivityTimeOutToHome != 0)
+  {
+    // Screen is HomeScreen ?
+    if (lv_scr_act() != screenVault.get(SCREEN_HOME)->screen)
+    {
+      // time elapsed, jump to HomeScreen
+      if (lv_disp_get_inactive_time(NULL) > _noActivityTimeOutToHome)
+        screenVault.show(SCREEN_HOME);
+    }
+  }
+  if (_noActivityTimeOutToSleep != 0)
+  {
+    // is in sleep allready ?
+    if (_actBackLight > 0)
+    {
+      // time elapsed, jump to HomeScreen
+      if (lv_disp_get_inactive_time(NULL) > _noActivityTimeOutToSleep)
+      {
+        _retainedBackLight = _actBackLight;
+        publishScreenEvent(0, "asleep");
+        _setBackLight(0, true);
+        setBackLightSliderValue(0);
+      }
+    }
+  }
 }
 
 /*
@@ -971,9 +991,14 @@ void jsonConfig(JsonVariant json)
     jsonThemeColorConfig(json["colortheme"]);
   }
 
-  if (json.containsKey("noActivitySeconds"))
+  if (json.containsKey("noActivitySecondsToHome"))
   {
-    _noActivityTimeOut = json["noActivitySeconds"].as<int>() * 1000;
+    _noActivityTimeOutToHome = json["noActivitySecondsToHome"].as<int>() * 1000;
+  }
+
+  if (json.containsKey("noActivitySecondsToSleep"))
+  {
+    _noActivityTimeOutToSleep = json["noActivitySecondsToSleep"].as<int>() * 1000;
   }
 
   if (json.containsKey("screens"))
@@ -1104,12 +1129,20 @@ void screenConfigSchema(JsonVariant json)
   blue["maximum"] = 255;
 
   // noActivity timeout
-  JsonObject noActivitySeconds = json.createNestedObject("noActivitySeconds");
-  noActivitySeconds["title"] = "Return to HomeScreen after Timeout (seconds) of no activity";
-  noActivitySeconds["description"] = "Display shows HomeScreen after Timeout (seconds) of no activity. 0 disables.";
-  noActivitySeconds["type"] = "integer";
-  noActivitySeconds["minimum"] = 0;
-  noActivitySeconds["maximum"] = 600;
+  JsonObject noActivitySecondsToHome = json.createNestedObject("noActivitySecondsToHome");
+  noActivitySecondsToHome["title"] = "Return to HomeScreen after Timeout (seconds) of no activity";
+  noActivitySecondsToHome["description"] = "Display shows HomeScreen after Timeout (seconds) of no activity. 0 disables.";
+  noActivitySecondsToHome["type"] = "integer";
+  noActivitySecondsToHome["minimum"] = 0;
+  noActivitySecondsToHome["maximum"] = 600;
+
+  // noActivity timeout
+  JsonObject noActivitySecondsToSleep = json.createNestedObject("noActivitySecondsToSleep");
+  noActivitySecondsToSleep["title"] = "Set Screen to sleep (backlight off) after Timeout (seconds) of no activity";
+  noActivitySecondsToSleep["description"] = "Screen is dimmed to 0 after Timeout (seconds) of no activity. 0 disables.";
+  noActivitySecondsToSleep["type"] = "integer";
+  noActivitySecondsToSleep["minimum"] = 0;
+  noActivitySecondsToSleep["maximum"] = 3600;
 }
 
 void setConfigSchema()
@@ -1158,6 +1191,37 @@ lv_img_dsc_t *decodeBase64ToImg(const char *imageBase64)
   imgPng->data = raw;
 
   return imgPng;
+}
+
+void jsonSetBackLightCommand(JsonVariant json)
+{
+  int blValue = -1;
+  if (json.containsKey("brightness"))
+  {
+    blValue = json["brightness"].as<int>();
+    if (blValue < 1)   blValue = 1;
+    if (blValue > 100) blValue = 100;
+  }
+  if (json.containsKey("state"))
+  {
+    if (strcmp(json["state"], "sleep") == 0)
+    {
+      _retainedBackLight = _actBackLight;
+      blValue = 0;
+      publishScreenEvent(0, "asleep");
+    } 
+    if (strcmp(json["state"], "awake") == 0)
+    {
+      lv_disp_trig_activity(NULL);
+      blValue = _retainedBackLight;
+      publishScreenEvent(0, "awake");
+    }
+  } 
+  if (blValue > -1)
+  {
+    _setBackLight(blValue, true);
+    setBackLightSliderValue(blValue);
+  }
 }
 
 void jsonSetStateCommand(JsonVariant json)
@@ -1325,9 +1389,7 @@ void jsonCommand(JsonVariant json)
 {
   if (json.containsKey("backlight"))
   {
-    int blValue = json["backlight"]["brightness"].as<int>();
-    _setBackLight(blValue, true);
-    setBackLightSliderValue(blValue);
+    jsonSetBackLightCommand(json["backlight"]);
   }
 
   if (json.containsKey("message"))
