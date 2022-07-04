@@ -1420,12 +1420,9 @@ void jsonCommand(JsonVariant json)
     selectScreen(screenIdx);
   }
 
-  if (json.containsKey("setimage"))
+  if (json.containsKey("addIcon"))
   {
-    if (strcmp(json["setimage"]["imagetype"], "icon") == 0)
-    {
-      jsonAddIcon(json["setimage"]);
-    }
+    jsonAddIcon(json["addIcon"]);
   }
 }
 
