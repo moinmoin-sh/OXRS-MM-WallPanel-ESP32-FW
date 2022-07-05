@@ -1226,7 +1226,7 @@ void jsonSetBackLightCommand(JsonVariant json)
   }
 }
 
-void jsonSetStateCommand(JsonVariant json)
+void jsonTilesCommand(JsonVariant json)
 {
   int screenIdx = json["screen"].as<int>();
   if ((screenIdx < SCREEN_START) || (screenIdx > SCREEN_END))
@@ -1319,19 +1319,19 @@ void jsonSetStateCommand(JsonVariant json)
     tile->setBgImage(decodeBase64ToImg(json["image"]), json["zoom"], json["posOffset"][0], json["posOffset"][1]);
   }
 
-  if (json.containsKey("dropdownlist"))
+  if (json.containsKey("dropDownList"))
   {
-    tile->setDropDownList(json["dropdownlist"]);
+    tile->setDropDownList(json["dropDownList"]);
   }
 
-  if (json.containsKey("dropdownselect"))
+  if (json.containsKey("dropDownSelect"))
   {
-    tile->setDropDownIndex(json["dropdownselect"].as<uint>());
+    tile->setDropDownIndex(json["dropDownSelect"].as<uint>());
   }
 
-  if (json.containsKey("dropdownlabel"))
+  if (json.containsKey("dropDownLabel"))
   {
-    tile->setDropDownLabel(json["dropdownlabel"]);
+    tile->setDropDownLabel(json["dropDownLabel"]);
   }
 }
 
@@ -1399,11 +1399,11 @@ void jsonCommand(JsonVariant json)
     _showMsgBox(json["message"]["title"], json["message"]["text"]);
   }
 
-  if (json.containsKey("setstate"))
+  if (json.containsKey("tiles"))
   {
-    for (JsonVariant states : json["setstate"].as<JsonArray>())
+    for (JsonVariant states : json["tiles"].as<JsonArray>())
     {
-      jsonSetStateCommand(states);
+      jsonTilesCommand(states);
     }
   }
 
