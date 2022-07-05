@@ -24,8 +24,8 @@ protected:
 
   int _screenIdx = 0;
   int _tileIdx = 0;
-  int _type = 0;
-  string _typeStr;
+  int _style = 0;
+  string _styleStr;
   int _linkedScreen = 0;
   bool _state = false;
   bool _keyPadEnable = false;
@@ -52,7 +52,7 @@ public :
   ~classTile();
 
   void begin(lv_obj_t *parent, const void *img, const char *labelText);
-  void registerTile(int screenIdx, int tileIdx, int type, const char* typeStr);
+  void registerTile(int screenIdx, int tileIdx, int style, const char* styleStr);
   void setLabel(const char *labelText);
   void setSubLabel(const char *subLabelText);
   void setState(bool state);
@@ -73,8 +73,8 @@ public :
   tileId_t getId(void);
   int getScreenIdx(void);
   int getTileIdx(void);
-  int getType(void);
-  const char* getTypeStr(void);
+  int getStyle(void);
+  const char* getStyleStr(void);
   bool getState(void);
   char *getLabel(void);
   

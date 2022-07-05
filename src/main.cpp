@@ -130,8 +130,8 @@ lv_color_t colorBg;
 // WT32 handler
 OXRS_WT32 wt32;
 
-// the tile_type_LUT
-tileTypeLutEntry_t tileTypeLut[TT_TYPE_COUNT] = {0};
+// the tile_style_LUT
+styleLutEntry_t styleLut[TS_STYLE_COUNT] = {0};
 
 // iconVault holds all icon image name and reference
 classIconList iconVault = classIconList();
@@ -178,7 +178,7 @@ void my_print(const char *buf)
 }
 #endif
 
-/*-----------------  Icon_Vault and tile_type_LUT handler  -----------------------*/
+/*-----------------  Icon_Vault and tile_style_LUT handler  -----------------------*/
 // initialise the Icon_Vault
 void initIconVault(void)
 {
@@ -196,43 +196,43 @@ void initIconVault(void)
   iconVault.add({string("_onoff"), imgOnOff});
 }
 
-// initialise the tile_type_LUT
-void initTileTypeLut(void)
+// initialise the tile_style_LUT
+void initStyleLut(void)
 {
-  tileTypeLut[TT_BUTTON] = {TT_BUTTON, "button", imgBulb};
-  tileTypeLut[TT_BUTTON_LEVEL_UP] = {TT_BUTTON_LEVEL_UP, "button_level_up", imgBulb};
-  tileTypeLut[TT_BUTTON_LEVEL_DOWN] = {TT_BUTTON_LEVEL_DOWN, "button_level_down", imgBulb};
-  tileTypeLut[TT_INDICATOR] = {TT_INDICATOR, "indicator", imgWindow};
-  tileTypeLut[TT_COLOR_PICKER] = {TT_COLOR_PICKER, "color_picker", NULL};
-  tileTypeLut[TT_DROPDOWN] = {TT_DROPDOWN, "drop_down", NULL};
-  tileTypeLut[TT_KEYPAD] = {TT_KEYPAD, "keypad", imgUnLocked};
-  tileTypeLut[TT_KEYPAD_BLOCKING] = {TT_KEYPAD_BLOCKING, "keypad_blocking", imgUnLocked};
-  tileTypeLut[TT_REMOTE] = {TT_REMOTE, "remote", imgRemote};
-  tileTypeLut[TT_LINK] = {TT_LINK, "link", imgBulb};
-  tileTypeLut[TT_MEDIAPLAYER] = {TT_MEDIAPLAYER, "mediaplayer", imgUnLocked};
+  styleLut[TS_BUTTON] = {TS_BUTTON, "button", imgBulb};
+  styleLut[TS_BUTTON_LEVEL_UP] = {TS_BUTTON_LEVEL_UP, "button_level_up", imgBulb};
+  styleLut[TS_BUTTON_LEVEL_DOWN] = {TS_BUTTON_LEVEL_DOWN, "button_level_down", imgBulb};
+  styleLut[TS_INDICATOR] = {TS_INDICATOR, "indicator", imgWindow};
+  styleLut[TS_COLOR_PICKER] = {TS_COLOR_PICKER, "color_picker", NULL};
+  styleLut[TS_DROPDOWN] = {TS_DROPDOWN, "drop_down", NULL};
+  styleLut[TS_KEYPAD] = {TS_KEYPAD, "keypad", imgUnLocked};
+  styleLut[TS_KEYPAD_BLOCKING] = {TS_KEYPAD_BLOCKING, "keypad_blocking", imgUnLocked};
+  styleLut[TS_REMOTE] = {TS_REMOTE, "remote", imgRemote};
+  styleLut[TS_LINK] = {TS_LINK, "link", imgBulb};
+  styleLut[TS_MEDIAPLAYER] = {TS_MEDIAPLAYER, "mediaplayer", imgUnLocked};
 }
 
-// converts a type string to its enum
-int parseInputType(const char *inputType)
+// converts a style string to its enum
+int parseInputStyle(const char *inputStyle)
 {
   int i;
-  for (i = 0; i < TT_TYPE_COUNT; i++)
+  for (i = 0; i < TS_STYLE_COUNT; i++)
   {
-    if (tileTypeLut[i].typeStr)
-      if (strcmp(tileTypeLut[i].typeStr, inputType) == 0)
+    if (styleLut[i].styleStr)
+      if (strcmp(styleLut[i].styleStr, inputStyle) == 0)
         break;
   }
   // in range check
-  if (i >= TT_TYPE_COUNT) i = 0;
-  return (tileTypeLut[i].type);
+  if (i >= TS_STYLE_COUNT) i = 0;
+  return (styleLut[i].style);
 }
 
-// converts a type enum to its string
-const char *typeEnum2Str(int typeEnum)
+// converts a style enum to its string
+const char *styleEnum2Str(int styleEnum)
 {
   // in range check
-  if (typeEnum >= TT_TYPE_COUNT) typeEnum = 0;
-  return tileTypeLut[typeEnum].typeStr;
+  if (styleEnum >= TS_STYLE_COUNT) styleEnum = 0;
+  return styleLut[styleEnum].styleStr;
 }
 
 /*--------------------------- publish with MQTT  -----------------------------*/
@@ -244,7 +244,7 @@ void publishTileEvent(classTile *tPtr, const char *event)
   StaticJsonDocument<128> json;
   json["screen"] = tPtr->getScreenIdx();
   json["tile"] = tPtr->getTileIdx();
-  json["tiletype"] = tPtr->getTypeStr();
+  json["style"] = tPtr->getStyleStr();
   json["type"] = "button";
   json["event"] = event;
   json["state"] = (tPtr->getState() == true) ? "on" : "off";
@@ -253,13 +253,13 @@ void publishTileEvent(classTile *tPtr, const char *event)
 }
 
 // publish remote button Event
-// {"screen":1, "tile":1, "tiletype":remote, "type":"up", "event":"single" }
+// {"screen":1, "tile":1, "style":remote, "type":"up", "event":"single" }
 void publishRemoteEvent(classTile *tPtr, int btnIndex, const char *event)
 {
   StaticJsonDocument<128> json;
   json["screen"] = tPtr->getScreenIdx();
   json["tile"] = tPtr->getTileIdx();
-  json["tiletype"] = tPtr->getTypeStr();
+  json["style"] = tPtr->getStyleStr();
   switch (btnIndex)
   {
   case 1:    json["type"] = "up";    break;
@@ -284,7 +284,7 @@ void publishDropDownEvent(classTile *tPtr, int listIndex)
   StaticJsonDocument<128> json;
   json["screen"] = tPtr->getScreenIdx();
   json["tile"] = tPtr->getTileIdx();
-  json["tiletype"] = tPtr->getTypeStr();
+  json["style"] = tPtr->getStyleStr();
   json["type"] = "dropdown";
   json["event"] = "change";
   json["state"] = listIndex;
@@ -293,13 +293,13 @@ void publishDropDownEvent(classTile *tPtr, int listIndex)
 }
 
 // publish key pad change Event
-// {"screen":1, "tile":1, "tiletype":"light", "type":"button", "event":"key", "state":"off", "keycode":"1234" }
+// {"screen":1, "tile":1, "style":"light", "type":"button", "event":"key", "state":"off", "keycode":"1234" }
 void publishKeyPadEvent(classTile *tPtr, const char *key)
 {
   StaticJsonDocument<128> json;
   json["screen"] = tPtr->getScreenIdx();
   json["tile"] = tPtr->getTileIdx();
-  json["tiletype"] = tPtr->getTypeStr();
+  json["style"] = tPtr->getStyleStr();
   json["type"] = "button";
   json["event"] = "key";
   json["state"] = (tPtr->getState() == true) ? "on" : "off";
@@ -315,7 +315,7 @@ void publishLevelEvent(classTile *tPtr, const char *event, int value)
   StaticJsonDocument<128> json;
   json["screen"] = tPtr->getScreenIdx();
   json["tile"] = tPtr->getTileIdx();
-  json["tiletype"] = tPtr->getTypeStr();
+  json["style"] = tPtr->getStyleStr();
   json["type"] = "level";
   json["event"] = event;
   json["state"] = value;
@@ -330,7 +330,7 @@ void publishPrevNextEvent(classTile *tPtr, const char *event)
   StaticJsonDocument<128> json;
   json["screen"] = tPtr->getScreenIdx();
   json["tile"] = tPtr->getTileIdx();
-  json["tiletype"] = tPtr->getTypeStr();
+  json["style"] = tPtr->getStyleStr();
   json["type"] = "button";
   json["event"] = event;
 
@@ -642,7 +642,7 @@ static void keyPadEventHandler(lv_event_t *e)
     }
     else if (strcmp(txt, LV_SYMBOL_NEW_LINE) == 0)
     {
-      if ((strlen(keyPad.getKey()) == 0) && !(tPtr->getType() == TT_KEYPAD_BLOCKING))
+      if ((strlen(keyPad.getKey()) == 0) && !(tPtr->getStyle() == TS_KEYPAD_BLOCKING))
         keyPad.close();
       if (strlen(keyPad.getKey()) > 0)
         publishKeyPadEvent(tPtr, keyPad.getKey());
@@ -724,14 +724,14 @@ static void tileEventHandler(lv_event_t *e)
       {
         screenVault.show(linkedScreen);
       }
-      // button is type DROPDOWN -> show drop down overlay
-      else if (tPtr->getType() == TT_DROPDOWN)
+      // button is style DROPDOWN -> show drop down overlay
+      else if (tPtr->getStyle() == TS_DROPDOWN)
       {
         dropDownOverlay = classDropDown(tPtr, dropDownEventHandler);
         dropDownOverlay.open();
       }
-      // button is type REMOTE -> show remote overlay
-      else if (tPtr->getType() == TT_REMOTE)
+      // button is style REMOTE -> show remote overlay
+      else if (tPtr->getStyle() == TS_REMOTE)
       {
         remoteControl = classRemote(tPtr, navigationButtonEventHandler);
       }
@@ -831,35 +831,35 @@ void createScreen(int screenIdx)
   Config handler
  */
 
-// type list for config
+// icon list for config
 void createIconEnum(JsonObject parent)
 {
-  JsonArray typeEnum = parent.createNestedArray("enum");
+  JsonArray styleEnum = parent.createNestedArray("enum");
 
   string iconStr;
   iconVault.setIteratorStart();
   while ((iconStr = iconVault.getNextStr()) != "")
   {
-    typeEnum.add(iconStr);
+    styleEnum.add(iconStr);
   }
 }
 
-// type list for config
-void createInputTypeEnum(JsonObject parent)
+// style list for config
+void createInputStyleEnum(JsonObject parent)
 {
-  JsonArray typeEnum = parent.createNestedArray("enum");
+  JsonArray styleEnum = parent.createNestedArray("enum");
 
-  for (int i = 1; i < TT_TYPE_COUNT; i++)
+  for (int i = 1; i < TS_STYLE_COUNT; i++)
   {
-    typeEnum.add(tileTypeLut[i].typeStr);
+    styleEnum.add(styleLut[i].styleStr);
   }
 }
 
 // Create any tile on any screen
-void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *iconStr, const char *label, int linkedScreen)
+void createTile(const char *styleStr, int screenIdx, int tileIdx, const char *iconStr, const char *label, int linkedScreen)
 {
   const void *img = NULL;
-  int tileType;
+  int style;
 
   // create screen if not exist
   createScreen(screenIdx);
@@ -867,8 +867,8 @@ void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *ico
   // delete tile reference if exist
   tileVault.remove(screenIdx, tileIdx);
 
-  // get the tile_type
-  tileType = parseInputType(typeStr);
+  // get the tile_style
+  style = parseInputStyle(styleStr);
 
   // get the icon image
   if (iconStr)
@@ -877,10 +877,10 @@ void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *ico
   // create new Tile
   classTile &ref = tileVault.add();
   ref.begin(screenVault.get(screenIdx)->container, img, label);
-  ref.registerTile(screenIdx, tileIdx, tileType, typeStr);
+  ref.registerTile(screenIdx, tileIdx, style, styleStr);
 
-  // handle tiles depending on tileType capabilities
-  if ((tileType == TT_LINK) && linkedScreen)
+  // handle tiles depending on style capabilities
+  if ((style == TS_LINK) && linkedScreen)
   {
     ref.setLink(linkedScreen);
     // create screen if not exist
@@ -888,26 +888,26 @@ void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *ico
   }
 
   // set the event handler if NOT (INDICATOR_*)
-  if (tileType != TT_INDICATOR)
+  if (style != TS_INDICATOR)
   {
     ref.addEventHandler(tileEventHandler);
   }
 
   // enable on-tile level control (bottom-up)
-  if (tileType == TT_BUTTON_LEVEL_UP)
+  if (style == TS_BUTTON_LEVEL_UP)
   {
     ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
   }
 
   // enable on-tile level control (top-down)
-  if (tileType == TT_BUTTON_LEVEL_DOWN)
+  if (style == TS_BUTTON_LEVEL_DOWN)
   {
     ref.setTopDownMode(true);
     ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
   }
 
   // enable key pad popup, set img for state ON to imgLocked
-  if ((tileType == TT_KEYPAD) || (tileType == TT_KEYPAD_BLOCKING))
+  if ((style == TS_KEYPAD) || (style == TS_KEYPAD_BLOCKING))
   {
     ref.setKeyPadEnable(true);
     if (strcmp(iconStr, "lock") == 0)
@@ -915,13 +915,13 @@ void createTile(const char *typeStr, int screenIdx, int tileIdx, const char *ico
   }
 
   // set indicator for modal screen
-  if ((tileType == TT_DROPDOWN) || (tileType == TT_REMOTE) || (tileType == TT_KEYPAD) || (tileType == TT_KEYPAD_BLOCKING))
+  if ((style == TS_DROPDOWN) || (style == TS_REMOTE) || (style == TS_KEYPAD) || (style == TS_KEYPAD_BLOCKING))
   {
     ref.setDropDownIndicator();
   }
 
   // enable mini player
-  if (tileType == TT_MEDIAPLAYER)
+  if (style == TS_MEDIAPLAYER)
   {
     ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
     ref.setIconForStateOn(imgPause);
@@ -977,7 +977,7 @@ void jsonTilesConfig(int screenIdx, JsonVariant json)
     return;
   }
 
-  createTile(json["type"], screenIdx, tileIdx, json["icon"], json["label"], json["link"]);
+  createTile(json["style"], screenIdx, tileIdx, json["icon"], json["label"], json["link"]);
 }
 
 void jsonConfig(JsonVariant json)
@@ -1057,9 +1057,9 @@ void screenConfigSchema(JsonVariant json)
   tile3["minimum"] = TILE_START;
   tile3["maximum"] = TILE_END;
 
-  JsonObject type3 = properties3.createNestedObject("type");
-  type3["title"] = "Type";
-  createInputTypeEnum(type3);
+  JsonObject type3 = properties3.createNestedObject("style");
+  type3["title"] = "Style";
+  createInputStyleEnum(type3);
 
   JsonObject icon = properties3.createNestedObject("icon");
   icon["title"] = "Icon";
@@ -1077,7 +1077,7 @@ void screenConfigSchema(JsonVariant json)
 
   JsonArray required3 = items3.createNestedArray("required");
   required3.add("tile");
-  required3.add("type");
+  required3.add("style");
 
   // default Theme color
   JsonObject colortheme = json.createNestedObject("colortheme");
@@ -1490,8 +1490,8 @@ void setup()
   delay(1000);
   Serial.println(F("[wpan] starting up..."));
 
-  // initialise the Tile_Type_LUT and Img_LUT for later use
-  initTileTypeLut();
+  // initialise the Tile_Style_LUT and Img_LUT for later use
+  initStyleLut();
   initIconVault();
 
   // set up for backlight dimming (PWM)
