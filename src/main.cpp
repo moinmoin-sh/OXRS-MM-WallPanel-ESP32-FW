@@ -910,7 +910,7 @@ void createTile(const char *styleStr, int screenIdx, int tileIdx, const char *ic
   if ((style == TS_KEYPAD) || (style == TS_KEYPAD_BLOCKING))
   {
     ref.setKeyPadEnable(true);
-    if (strcmp(iconStr, "lock") == 0)
+    if (strcmp(iconStr, "_lock") == 0)
       ref.setIconForStateOn(imgLocked);
   }
 
@@ -1407,9 +1407,9 @@ void jsonCommand(JsonVariant json)
     }
   }
 
-  if (json.containsKey("setlockstate"))
+  if (json.containsKey("keyPad"))
   {
-    jsonSetLockStateCommand(json["setlockstate"]["set"]);
+    jsonSetLockStateCommand(json["keyPad"]["state"]);
   }
 
   if (json.containsKey("screens"))
