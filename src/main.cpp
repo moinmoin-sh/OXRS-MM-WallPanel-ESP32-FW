@@ -200,16 +200,16 @@ void initIconVault(void)
 void initStyleLut(void)
 {
   styleLut[TS_BUTTON] = {TS_BUTTON, "button", imgBulb};
-  styleLut[TS_BUTTON_LEVEL_UP] = {TS_BUTTON_LEVEL_UP, "button_level_up", imgBulb};
-  styleLut[TS_BUTTON_LEVEL_DOWN] = {TS_BUTTON_LEVEL_DOWN, "button_level_down", imgBulb};
+  styleLut[TS_BUTTON_LEVEL_UP] = {TS_BUTTON_LEVEL_UP, "buttonLevelUp", imgBulb};
+  styleLut[TS_BUTTON_LEVEL_DOWN] = {TS_BUTTON_LEVEL_DOWN, "buttonLevelDown", imgBulb};
   styleLut[TS_INDICATOR] = {TS_INDICATOR, "indicator", imgWindow};
-  styleLut[TS_COLOR_PICKER] = {TS_COLOR_PICKER, "color_picker", NULL};
-  styleLut[TS_DROPDOWN] = {TS_DROPDOWN, "drop_down", NULL};
-  styleLut[TS_KEYPAD] = {TS_KEYPAD, "keypad", imgUnLocked};
-  styleLut[TS_KEYPAD_BLOCKING] = {TS_KEYPAD_BLOCKING, "keypad_blocking", imgUnLocked};
+  styleLut[TS_COLOR_PICKER] = {TS_COLOR_PICKER, "colorPicker", NULL};
+  styleLut[TS_DROPDOWN] = {TS_DROPDOWN, "dropDown", NULL};
+  styleLut[TS_KEYPAD] = {TS_KEYPAD, "keyPad", imgUnLocked};
+  styleLut[TS_KEYPAD_BLOCKING] = {TS_KEYPAD_BLOCKING, "keyPadBlocking", imgUnLocked};
   styleLut[TS_REMOTE] = {TS_REMOTE, "remote", imgRemote};
   styleLut[TS_LINK] = {TS_LINK, "link", imgBulb};
-  styleLut[TS_MEDIAPLAYER] = {TS_MEDIAPLAYER, "mediaplayer", imgUnLocked};
+  styleLut[TS_MEDIAPLAYER] = {TS_MEDIAPLAYER, "mediaPlayer", imgUnLocked};
 }
 
 // converts a style string to its enum
