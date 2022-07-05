@@ -1021,7 +1021,7 @@ void screenConfigSchema(JsonVariant json)
 {
   // screens
   JsonObject screens = json.createNestedObject("screens");
-  screens["title"] = "screens Configuration";
+  screens["title"] = "Screen Configuration";
   screens["description"] = "Add Screen(s). Screen 1 is the HomeScreen and needs to be configured!";
   screens["type"] = "array";
 
@@ -1031,7 +1031,7 @@ void screenConfigSchema(JsonVariant json)
   JsonObject properties2 = items2.createNestedObject("properties");
 
   JsonObject screen = properties2.createNestedObject("screen");
-  screen["title"] = "screen";
+  screen["title"] = "Index";
   screen["type"] = "integer";
   screen["minimum"] = SCREEN_START;
   screen["maximum"] = SCREEN_END;
@@ -1042,7 +1042,7 @@ void screenConfigSchema(JsonVariant json)
 
   // tiles on screen
   JsonObject tiles = properties2.createNestedObject("tiles");
-  tiles["title"] = "screen Configuration";
+  tiles["title"] = "Tile Configuration";
   tiles["description"] = "Add Tiles to screen.";
   tiles["type"] = "array";
 
@@ -1052,10 +1052,14 @@ void screenConfigSchema(JsonVariant json)
   JsonObject properties3 = items3.createNestedObject("properties");
 
   JsonObject tile3 = properties3.createNestedObject("tile");
-  tile3["title"] = "Tile";
+  tile3["title"] = "Index";
   tile3["type"] = "integer";
   tile3["minimum"] = TILE_START;
   tile3["maximum"] = TILE_END;
+
+  JsonObject label3 = properties3.createNestedObject("label");
+  label3["title"] = "Label";
+  label3["type"] = "string";
 
   JsonObject type3 = properties3.createNestedObject("style");
   type3["title"] = "Style";
@@ -1065,12 +1069,9 @@ void screenConfigSchema(JsonVariant json)
   icon["title"] = "Icon";
   createIconEnum(icon);
 
-  JsonObject label3 = properties3.createNestedObject("label");
-  label3["title"] = "Label";
-  label3["type"] = "string";
-
   JsonObject link = properties3.createNestedObject("link");
-  link["title"] = "Optional, select screen number if Tile links to new Screen.";
+  link["title"] = "Linked Screen Index";
+  link["description"] = "Required if Tile Style is 'link'.";
   link["type"] = "integer";
   link["minimum"] = SCREEN_START;
   link["maximum"] = SCREEN_END;
