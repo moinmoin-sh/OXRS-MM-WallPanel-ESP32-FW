@@ -351,14 +351,14 @@ void publishScreenEvent(int screenIdx, const char *state)
 }
 
 // publish message box closed Event
-// {"screen":0, "type":"msgbox", "event":"change" , "state":"closed"}
-void publishMsgBoxClosedEvent(void)
+// {"screen":0, "type":"msgbox", "event":"open" , "state":"open"}
+void publishMsgBoxEvent(const char *event, const char *state)
 {
   StaticJsonDocument<128> json;
   json["screen"] = 0;
-  json["type"] = "msgbox";
-  json["event"] = "change";
-  json["state"] = "closed";
+  json["type"] = "msgBox";
+  json["event"] = event;
+  json["state"] = state;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
@@ -581,7 +581,7 @@ void msgBoxClosedEventHandler(lv_event_t *e)
 {
   lv_event_code_t code = lv_event_get_code(e);
   if (code == LV_EVENT_DELETE)
-    publishMsgBoxClosedEvent();
+    publishMsgBoxEvent("close", "closed");
 }
 
 // Up / Down Button Event Handler
@@ -809,6 +809,7 @@ void _showMsgBox(const char *title, const char *text)
   lv_obj_center(mbox1);
 
   lv_obj_add_event_cb(mbox1, msgBoxClosedEventHandler, LV_EVENT_ALL, NULL);
+  publishMsgBoxEvent("open", "open");
 }
 
 // create screen for tiles in screenVault if not exists
