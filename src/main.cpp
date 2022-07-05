@@ -1412,9 +1412,9 @@ void jsonCommand(JsonVariant json)
     jsonSetLockStateCommand(json["setlockstate"]["set"]);
   }
 
-  if (json.containsKey("screen"))
+  if (json.containsKey("screens"))
   {
-    int screenIdx = json["screen"]["select"].as<int>();
+    int screenIdx = json["screens"]["load"].as<int>();
 
     wt32.print(F("[wpan] screen select: "));
     wt32.println(screenIdx);
