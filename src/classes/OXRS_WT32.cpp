@@ -35,7 +35,7 @@ OXRS_API _api(_mqtt);
 MqttLogger _logger(_mqttClient, "log", MqttLoggerMode::MqttAndSerial);
 
 // Supported firmware config and command schemas
-DynamicJsonDocument _fwConfigSchema(2048);
+DynamicJsonDocument _fwConfigSchema(4096);
 DynamicJsonDocument _fwCommandSchema(2048);
 
 // MQTT callbacks wrapped by _mqttConfig/_mqttCommand

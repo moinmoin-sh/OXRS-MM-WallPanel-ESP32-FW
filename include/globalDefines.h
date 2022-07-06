@@ -9,6 +9,8 @@ enum tileType_t
   TS_BUTTON,
   TS_BUTTON_LEVEL_UP,
   TS_BUTTON_LEVEL_DOWN,
+  TS_BUTTON_PREV_NEXT,
+  TS_BUTTON_LEFT_RIGHT,
   TS_INDICATOR,
   TS_COLOR_PICKER,
   TS_DROPDOWN,
@@ -16,7 +18,6 @@ enum tileType_t
   TS_KEYPAD_BLOCKING,
   TS_REMOTE,
   TS_LINK,
-  TS_MEDIAPLAYER,
   TS_STYLE_COUNT // must be the last element
 };
 

@@ -187,7 +187,8 @@ void initIconVault(void)
   iconVault.add({string("_ceilingfan"), imgCeilingFan});
   iconVault.add({string("_coffee"), imgCoffee});
   iconVault.add({string("_door"), imgDoor});
-  iconVault.add({string("_lock"), imgUnLocked});
+  iconVault.add({string("_locked"), imgLocked});
+  iconVault.add({string("_unlocked"), imgUnLocked});
   iconVault.add({string("_musik"), imgMusic});
   iconVault.add({string("_remote"), imgRemote});
   iconVault.add({string("_speaker"), imgSpeaker});
@@ -195,6 +196,8 @@ void initIconVault(void)
   iconVault.add({string("_3dprint"), img3dPrint});
   iconVault.add({string("_onoff"), imgOnOff});
   iconVault.add({string("_play"), imgPlay});
+  iconVault.add({string("_pause"), imgPause});
+  iconVault.add({string("_thermometer"), imgThermo});
 }
 
 // initialise the tile_style_LUT
@@ -204,14 +207,15 @@ void initStyleLut(void)
   styleLut[TS_BUTTON] = {TS_BUTTON, "button", NULL};
   styleLut[TS_BUTTON_LEVEL_UP] = {TS_BUTTON_LEVEL_UP, "buttonLevelUp", NULL};
   styleLut[TS_BUTTON_LEVEL_DOWN] = {TS_BUTTON_LEVEL_DOWN, "buttonLevelDown", NULL};
+  styleLut[TS_BUTTON_PREV_NEXT] = {TS_BUTTON_PREV_NEXT, "buttonPrevNext", NULL};
+  styleLut[TS_BUTTON_LEFT_RIGHT] = {TS_BUTTON_LEFT_RIGHT, "buttonLeftRight", NULL};
   styleLut[TS_INDICATOR] = {TS_INDICATOR, "indicator", NULL};
   styleLut[TS_COLOR_PICKER] = {TS_COLOR_PICKER, "colorPicker", NULL};
   styleLut[TS_DROPDOWN] = {TS_DROPDOWN, "dropDown", NULL};
-  styleLut[TS_KEYPAD] = {TS_KEYPAD, "keyPad", imgUnLocked};
-  styleLut[TS_KEYPAD_BLOCKING] = {TS_KEYPAD_BLOCKING, "keyPadBlocking", imgUnLocked};
+  styleLut[TS_KEYPAD] = {TS_KEYPAD, "keyPad", NULL};
+  styleLut[TS_KEYPAD_BLOCKING] = {TS_KEYPAD_BLOCKING, "keyPadBlocking", NULL};
   styleLut[TS_REMOTE] = {TS_REMOTE, "remote", imgRemote};
   styleLut[TS_LINK] = {TS_LINK, "link", NULL};
-  styleLut[TS_MEDIAPLAYER] = {TS_MEDIAPLAYER, "mediaPlayer", imgPlay};
 }
 
 // converts a style string to its enum
@@ -910,25 +914,22 @@ void createTile(const char *styleStr, int screenIdx, int tileIdx, const char *ic
     ref.addUpDownControl(upDownEventHandler, imgUp, imgDown);
   }
 
+  // enable prev/next control (e.g. media player)
+  if (style == TS_BUTTON_PREV_NEXT)
+  {
+    ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
+  }
+
   // enable key pad popup, set img for state ON to imgLocked
   if ((style == TS_KEYPAD) || (style == TS_KEYPAD_BLOCKING))
   {
     ref.setKeyPadEnable(true);
-    if (iconStr && (strcmp(iconStr, "_lock") == 0))
-      ref.setIconForStateOn(imgLocked);
   }
 
   // set indicator for modal screen
   if ((style == TS_DROPDOWN) || (style == TS_REMOTE) || (style == TS_KEYPAD) || (style == TS_KEYPAD_BLOCKING))
   {
     ref.setDropDownIndicator();
-  }
-
-  // enable mini player
-  if (style == TS_MEDIAPLAYER)
-  {
-    ref.addUpDownControl(prevNextEventHandler, imgPrev, imgNext);
-    ref.setIconForStateOn(imgPause);
   }
 }
 
@@ -1154,7 +1155,7 @@ void screenConfigSchema(JsonVariant json)
 void setConfigSchema()
 {
   // Define our config schema
-  StaticJsonDocument<2048> json;
+  StaticJsonDocument<4096> json;
   JsonVariant config = json.as<JsonVariant>();
 
   screenConfigSchema(config);
