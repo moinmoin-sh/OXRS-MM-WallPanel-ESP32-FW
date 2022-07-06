@@ -287,8 +287,8 @@ void publishDropDownEvent(classTile *tPtr, int listIndex)
   json["screen"] = tPtr->getScreenIdx();
   json["tile"] = tPtr->getTileIdx();
   json["style"] = tPtr->getStyleStr();
-  json["type"] = "dropdown";
-  json["event"] = "change";
+  json["type"] = "dropDown";
+  json["event"] = "selection";
   json["state"] = listIndex;
 
   wt32.publishStatus(json.as<JsonVariant>());
@@ -305,7 +305,7 @@ void publishKeyPadEvent(classTile *tPtr, const char *key)
   json["type"] = "button";
   json["event"] = "key";
   json["state"] = (tPtr->getState() == true) ? "on" : "off";
-  json["keycode"] = key;
+  json["keyCode"] = key;
 
   wt32.publishStatus(json.as<JsonVariant>());
 }
