@@ -194,22 +194,24 @@ void initIconVault(void)
   iconVault.add({string("_window"), imgWindow});
   iconVault.add({string("_3dprint"), img3dPrint});
   iconVault.add({string("_onoff"), imgOnOff});
+  iconVault.add({string("_play"), imgPlay});
 }
 
 // initialise the tile_style_LUT
 void initStyleLut(void)
 {
-  styleLut[TS_BUTTON] = {TS_BUTTON, "button", imgBulb};
-  styleLut[TS_BUTTON_LEVEL_UP] = {TS_BUTTON_LEVEL_UP, "buttonLevelUp", imgBulb};
-  styleLut[TS_BUTTON_LEVEL_DOWN] = {TS_BUTTON_LEVEL_DOWN, "buttonLevelDown", imgBulb};
-  styleLut[TS_INDICATOR] = {TS_INDICATOR, "indicator", imgWindow};
+  styleLut[TS_NONE] = {TS_NONE, "", NULL};
+  styleLut[TS_BUTTON] = {TS_BUTTON, "button", NULL};
+  styleLut[TS_BUTTON_LEVEL_UP] = {TS_BUTTON_LEVEL_UP, "buttonLevelUp", NULL};
+  styleLut[TS_BUTTON_LEVEL_DOWN] = {TS_BUTTON_LEVEL_DOWN, "buttonLevelDown", NULL};
+  styleLut[TS_INDICATOR] = {TS_INDICATOR, "indicator", NULL};
   styleLut[TS_COLOR_PICKER] = {TS_COLOR_PICKER, "colorPicker", NULL};
   styleLut[TS_DROPDOWN] = {TS_DROPDOWN, "dropDown", NULL};
   styleLut[TS_KEYPAD] = {TS_KEYPAD, "keyPad", imgUnLocked};
   styleLut[TS_KEYPAD_BLOCKING] = {TS_KEYPAD_BLOCKING, "keyPadBlocking", imgUnLocked};
   styleLut[TS_REMOTE] = {TS_REMOTE, "remote", imgRemote};
-  styleLut[TS_LINK] = {TS_LINK, "link", imgBulb};
-  styleLut[TS_MEDIAPLAYER] = {TS_MEDIAPLAYER, "mediaPlayer", imgUnLocked};
+  styleLut[TS_LINK] = {TS_LINK, "link", NULL};
+  styleLut[TS_MEDIAPLAYER] = {TS_MEDIAPLAYER, "mediaPlayer", imgPlay};
 }
 
 // converts a style string to its enum
@@ -873,6 +875,8 @@ void createTile(const char *styleStr, int screenIdx, int tileIdx, const char *ic
   // get the icon image
   if (iconStr)
     img = iconVault.getIcon(string(iconStr));
+  if (!img)
+    img = styleLut[style].imgDefault;
 
   // create new Tile
   classTile &ref = tileVault.add();
@@ -910,7 +914,7 @@ void createTile(const char *styleStr, int screenIdx, int tileIdx, const char *ic
   if ((style == TS_KEYPAD) || (style == TS_KEYPAD_BLOCKING))
   {
     ref.setKeyPadEnable(true);
-    if (strcmp(iconStr, "_lock") == 0)
+    if (iconStr && (strcmp(iconStr, "_lock") == 0))
       ref.setIconForStateOn(imgLocked);
   }
 
