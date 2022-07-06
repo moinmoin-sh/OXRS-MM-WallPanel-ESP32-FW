@@ -608,7 +608,7 @@ static void upDownEventHandler(lv_event_t *e)
     tPtr->setLevel(level, true);
     tPtr->showOvlBar(level);
     // send event
-    publishLevelEvent(tPtr, "change", level);
+    publishLevelEvent(tPtr, (direction == 1) ? "up" : "down", level);
   }
 }
 
