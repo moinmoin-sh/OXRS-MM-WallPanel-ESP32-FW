@@ -29,6 +29,9 @@ protected:
   int _linkedScreen = 0;
   bool _state = false;
   bool _keyPadEnable = false;
+  int _levelStart = 0;
+  int _levelStop = 100;
+  int _levelLargeStep = 5;
   int _level = 0;
   bool _topDownMode = false;
   const void *_img = NULL;
@@ -80,8 +83,12 @@ public :
   
   void addEventHandler(lv_event_cb_t callBack);
 
+  void setLevelStartStop(int start, int stop);
   void setLevel(int level, bool force);
   int getLevel(void);
+  int getLevelStart(void);
+  int getLevelStop(void);
+  int getLevelLargeStep(void);
   void setTopDownMode(bool enable);
   void showOvlBar(int level);
   void addUpDownControl(lv_event_cb_t upDownEventHandler, const void* imgUpperButton, const void* imgLowerButton);
