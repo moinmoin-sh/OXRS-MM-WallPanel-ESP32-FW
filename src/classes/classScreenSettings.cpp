@@ -1,13 +1,21 @@
 #include <classScreenSettings.h>
 #include <globalDefines.h>
 
+extern void _setBackLightLED(int val);
 extern lv_color_t colorOn;
 extern lv_color_t colorBg;
+
+static void _callBackReset(lv_event_t *e)
+{
+  _setBackLightLED(0);
+  ESP.restart();
+}
 
 classScreenSettings::classScreenSettings(lv_obj_t *parent, const void *img)
 {
   //    screens[8] = classScreen(8, 0);
   //    ui_InfoScreen = screens[8].screen; // lv_obj_create(NULL);
+
   _parent = parent;
 
   lv_obj_clear_flag(_parent, LV_OBJ_FLAG_SCROLLABLE);
@@ -72,6 +80,22 @@ classScreenSettings::classScreenSettings(lv_obj_t *parent, const void *img)
   lv_obj_set_size(_sliderLabel2, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
   lv_obj_align(_sliderLabel2, LV_ALIGN_CENTER, 125, -19);
   lv_label_set_text(_sliderLabel2, "50%");
+
+  // reset button
+  _btnReset = lv_btn_create(_parent);
+
+  lv_obj_set_style_bg_opa(_btnReset, WP_OPA_BG_OFF, LV_PART_MAIN | LV_IMGBTN_STATE_RELEASED);
+  lv_obj_set_style_img_recolor(_btnReset, lv_color_hex(0xffffff), LV_PART_MAIN | LV_IMGBTN_STATE_RELEASED);
+  lv_obj_set_style_img_recolor_opa(_btnReset, 255, LV_PART_MAIN | LV_IMGBTN_STATE_RELEASED);
+  lv_obj_set_size(_btnReset, 100, 50);
+  lv_obj_align(_btnReset, LV_ALIGN_BOTTOM_RIGHT, -5, -30);
+
+  lv_obj_t *_labelReset = lv_label_create(_btnReset);
+  lv_obj_set_size(_labelReset, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_center(_labelReset);
+  lv_label_set_text(_labelReset, "Reset !");
+
+  lv_obj_add_event_cb(_btnReset, _callBackReset, LV_EVENT_SHORT_CLICKED, NULL);
 }
 
 void classScreenSettings::addEventHandler(lv_event_cb_t callBack)
