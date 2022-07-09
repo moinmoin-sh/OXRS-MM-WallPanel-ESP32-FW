@@ -93,7 +93,7 @@ classScreenSettings::classScreenSettings(lv_obj_t *parent, const void *img)
   lv_obj_t *_labelReset = lv_label_create(_btnReset);
   lv_obj_set_size(_labelReset, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
   lv_obj_center(_labelReset);
-  lv_label_set_text(_labelReset, "Reset !");
+  lv_label_set_text(_labelReset, "Reboot !");
 
   lv_obj_add_event_cb(_btnReset, _callBackReset, LV_EVENT_SHORT_CLICKED, NULL);
 }
