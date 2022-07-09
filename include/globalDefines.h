@@ -5,28 +5,30 @@ using namespace std;
 
 enum tileType_t
 {
-  TT_NONE,
-  TT_BUTTON,
-  TT_BUTTON_LEVEL_UP,
-  TT_BUTTON_LEVEL_DOWN,
-  TT_INDICATOR,
-  TT_COLOR_PICKER,
-  TT_DROPDOWN,
-  TT_KEYPAD,
-  TT_KEYPAD_BLOCKING,
-  TT_REMOTE,
-  TT_LINK,
-  TT_MEDIAPLAYER,
-  TT_TYPE_COUNT // must be the last element
+  TS_NONE,
+  TS_BUTTON,
+  TS_BUTTON_LEVEL_UP,
+  TS_BUTTON_LEVEL_DOWN,
+  TS_BUTTON_UP_DOWN,
+  TS_BUTTON_LEFT_RIGHT,
+  TS_BUTTON_PREV_NEXT,
+  TS_INDICATOR,
+  TS_COLOR_PICKER,
+  TS_DROPDOWN,
+  TS_KEYPAD,
+  TS_KEYPAD_BLOCKING,
+  TS_REMOTE,
+  TS_LINK,
+  TS_STYLE_COUNT // must be the last element
 };
 
 // entry for the tile_type_LUT
 typedef struct
 {
-  int type;
-  const char *typeStr;
-  const void *img;
-} tileTypeLutEntry_t;
+  int style;
+  const char *styleStr;
+  const void *imgDefault;
+} styleLutEntry_t;
 
 typedef struct
 {

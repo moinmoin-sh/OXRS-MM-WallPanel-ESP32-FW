@@ -21,14 +21,18 @@ protected:
   lv_obj_t *_dropDownList = NULL;
   lv_obj_t *_dropDownLabel = NULL;
   lv_obj_t *_imgBg = NULL;
+  lv_obj_t *_roller = NULL;
 
   int _screenIdx = 0;
   int _tileIdx = 0;
-  int _type = 0;
-  string _typeStr;
+  int _style = 0;
+  string _styleStr;
   int _linkedScreen = 0;
   bool _state = false;
   bool _keyPadEnable = false;
+  int _levelStart = 0;
+  int _levelStop = 100;
+  int _levelLargeStep = 5;
   int _level = 0;
   bool _topDownMode = false;
   const void *_img = NULL;
@@ -36,6 +40,8 @@ protected:
   const void *_imgConfig = NULL;
   const void *_imgOnConfig = NULL;
   uint16_t _dropDownIndex = 0;
+  int _selectorIndex = 0;
+  string _selectorList = "";
 
   void _button(lv_obj_t *parent, const void *img);
   void _reColorAll(lv_color_t color, lv_style_selector_t selector);
@@ -52,7 +58,7 @@ public :
   ~classTile();
 
   void begin(lv_obj_t *parent, const void *img, const char *labelText);
-  void registerTile(int screenIdx, int tileIdx, int type, const char* typeStr);
+  void registerTile(int screenIdx, int tileIdx, int style, const char* styleStr);
   void setLabel(const char *labelText);
   void setSubLabel(const char *subLabelText);
   void setState(bool state);
@@ -73,15 +79,19 @@ public :
   tileId_t getId(void);
   int getScreenIdx(void);
   int getTileIdx(void);
-  int getType(void);
-  const char* getTypeStr(void);
+  int getStyle(void);
+  const char* getStyleStr(void);
   bool getState(void);
   char *getLabel(void);
   
   void addEventHandler(lv_event_cb_t callBack);
 
+  void setLevelStartStop(int start, int stop);
   void setLevel(int level, bool force);
   int getLevel(void);
+  int getLevelStart(void);
+  int getLevelStop(void);
+  int getLevelLargeStep(void);
   void setTopDownMode(bool enable);
   void showOvlBar(int level);
   void addUpDownControl(lv_event_cb_t upDownEventHandler, const void* imgUpperButton, const void* imgLowerButton);
@@ -93,4 +103,10 @@ public :
   uint16_t getDropDownIndex(void);
   const char *getDropDownLabel(void);
   void setDropDownIndicator(void);
+
+  void setSelectorList(const char* list);
+  void showSelector(int index);
+  void setSelectorIndex(int index);
+  int getSelectorIndex(void);
+  bool getSelectorValid(void);
 };

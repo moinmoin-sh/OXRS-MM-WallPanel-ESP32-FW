@@ -170,14 +170,14 @@ void classTile::begin(lv_obj_t *parent, const void *img, const char *labelText)
 }
 
 // supply bookkeeping information and align tile in grid
-void classTile::registerTile(int screenIdx, int tileIdx, int type, const char* typeStr)
+void classTile::registerTile(int screenIdx, int tileIdx, int style, const char* styleStr)
 {
   _screenIdx = screenIdx;
   _tileIdx = tileIdx;
   tileId.idx.screen = screenIdx;
   tileId.idx.tile = tileIdx;
-  _type = type;
-  _typeStr = typeStr;
+  _style = style;
+  _styleStr = styleStr;
 
   // position tile in grid after tile and screen are known
   int row = (tileIdx - 1) / 2;
@@ -316,14 +316,14 @@ int classTile::getTileIdx(void)
   return _tileIdx;
 }
 
-int classTile::getType(void)
+int classTile::getStyle(void)
 {
-  return _type;
+  return _style;
 }
 
-const char* classTile::getTypeStr(void)
+const char* classTile::getStyleStr(void)
 {
-  return _typeStr.c_str();
+  return _styleStr.c_str();
 }
 
 bool classTile::getState(void)
@@ -402,6 +402,15 @@ void classTile::addEventHandler(lv_event_cb_t callBack)
 
 // additional methods for on-tile level control
 
+void classTile::setLevelStartStop(int start, int stop)
+{
+  _levelStart = start;
+  _levelStop = stop;
+  _levelLargeStep = ((stop - start) + 10) / 20;
+  if (_levelLargeStep == 0) _levelLargeStep++;
+  _level = _levelStart;
+}
+
 void classTile::setLevel(int level, bool force)
 {
   // early exit if bar visualisation is activ and not forced
@@ -414,6 +423,21 @@ void classTile::setLevel(int level, bool force)
 int classTile::getLevel(void)
 {
   return _level;
+}
+
+int classTile::getLevelStart(void)
+{
+  return _levelStart;
+}
+
+int classTile::getLevelStop(void)
+{
+  return _levelStop;
+}
+
+int classTile::getLevelLargeStep(void)
+{
+  return _levelLargeStep;
 }
 
 void classTile::setTopDownMode(bool enable)
@@ -482,7 +506,7 @@ void classTile::showOvlBar(int level)
   _bar = lv_bar_create(_ovlPanel);
   if (lv_obj_get_state(_btn) & LV_STATE_CHECKED)
     lv_obj_add_state(_bar, LV_STATE_CHECKED);
-  lv_bar_set_range(_bar, 0, 100);
+  lv_bar_set_range(_bar, _levelStart, _levelStop);
   lv_obj_set_size(_bar, 10, 60);
   lv_obj_align(_bar, LV_ALIGN_CENTER, 10, 0);
 
@@ -492,7 +516,7 @@ void classTile::showOvlBar(int level)
   // _barLabel
   lv_obj_t *_barLabel = lv_label_create(_ovlPanel);
   lv_obj_set_size(_barLabel, 40, LV_SIZE_CONTENT);
-  lv_obj_align(_barLabel, LV_ALIGN_TOP_MID, -20, 000);
+  lv_obj_align(_barLabel, LV_ALIGN_TOP_MID, -20, 0);
   lv_obj_set_style_text_align(_barLabel, LV_TEXT_ALIGN_RIGHT, 0);
   lv_obj_set_style_text_color(_barLabel, lv_color_hex(0x000000), 0);
   lv_label_set_text_fmt(_barLabel, "%d", level);
@@ -530,7 +554,7 @@ void classTile::showOvlBar(int level)
     lv_obj_set_style_bg_opa(_bar, 255, LV_PART_INDICATOR | LV_STATE_CHECKED);
 
     lv_obj_set_y(_barLabel, -10);
-    lv_bar_set_value(_bar, 100 - level, LV_ANIM_OFF);
+    lv_bar_set_value(_bar, _levelStop - level, LV_ANIM_OFF);
   }
 
   lv_obj_del_delayed(_ovlPanel, 2000);
@@ -582,4 +606,58 @@ const char *classTile::getDropDownLabel(void)
 void classTile::setDropDownIndicator(void)
 {
   lv_label_set_text(_linkedLabel, LV_SYMBOL_DOWN);
+}
+
+// methods for selector function
+void classTile::showSelector(int index)
+{
+  if (lv_obj_is_valid(_roller))
+  {
+    lv_obj_del(_roller);
+  }
+
+  _roller = lv_roller_create(_btn);
+  lv_obj_set_style_border_width(_roller, 0, LV_PART_MAIN);
+  lv_roller_set_options(_roller, _selectorList.c_str(), LV_ROLLER_MODE_NORMAL);
+  lv_roller_set_visible_row_count(_roller, 3);
+
+  lv_obj_set_size(_roller, 70, 70);
+  lv_obj_set_style_text_line_space(_roller, 8, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(_roller, lv_color_lighten(colorBg, 50), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(_roller, 255, LV_PART_MAIN);
+
+  lv_obj_set_style_bg_color(_roller, colorOn, LV_PART_SELECTED);
+  lv_obj_set_style_radius(_roller, 5, LV_PART_MAIN);
+  lv_obj_align(_roller, LV_ALIGN_TOP_LEFT, 2, 2);
+  lv_obj_clear_flag(_roller, LV_OBJ_FLAG_CLICKABLE);
+
+  if (--index < 0) index = 0;
+  lv_roller_set_selected(_roller, index, LV_ANIM_OFF);
+  _selectorIndex = lv_roller_get_selected(_roller) + 1;
+
+  lv_obj_del_delayed(_roller, 2000);
+}
+
+// set the selector list
+void classTile::setSelectorList( const char* list)
+{
+  _selectorList = string(list);
+}
+
+// set index to selector list
+void classTile::setSelectorIndex(int index)
+{
+  _selectorIndex = index;
+}
+
+// set index to selector list
+int classTile::getSelectorIndex(void)
+{
+  return _selectorIndex;
+}
+
+// check if valid list exist
+bool classTile::getSelectorValid(void)
+{
+  return (_selectorList.size() > 0);
 }
