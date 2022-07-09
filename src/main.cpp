@@ -348,6 +348,21 @@ void publishPrevNextEvent(classTile *tPtr, const char *type, const char *event)
   wt32.publishStatus(json.as<JsonVariant>());
 }
 
+// publish selector Event
+// {"screen":1, "tile":1, "type":"prev"|"next", "event":"single"|"hold" }
+void publishSelectorEvent(classTile *tPtr, int index)
+{
+  StaticJsonDocument<128> json;
+  json["screen"] = tPtr->getScreenIdx();
+  json["tile"] = tPtr->getTileIdx();
+  json["style"] = tPtr->getStyleStr();
+  json["type"] = "selector";
+  json["event"] = "selection";
+  json["state"] = index;
+
+  wt32.publishStatus(json.as<JsonVariant>());
+}
+
 // publish Screen Event
 // {"screen":1, "type":"screen", "event":"change" , "state":"unloaded"}
 void publishScreenEvent(int screenIdx, const char *state)
@@ -654,14 +669,26 @@ void publishBacklightEvent(int brightness)
     if ((code == LV_EVENT_SHORT_CLICKED) || (code == LV_EVENT_LONG_PRESSED) || (code == LV_EVENT_LONG_PRESSED_REPEAT))
     {
       classTile *tPtr = (classTile *)lv_event_get_user_data(e);
-      if (tPtr->getStyle() == TS_BUTTON_PREV_NEXT)
-        type = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? "prev" : "next";
-      if (tPtr->getStyle() == TS_BUTTON_UP_DOWN)
-        type = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? "up" : "down";
-      if (tPtr->getStyle() == TS_BUTTON_LEFT_RIGHT)
-        type = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? "left" : "right";
-      const char *event = (code == LV_EVENT_SHORT_CLICKED) ? "single" : "hold";
-      publishPrevNextEvent(tPtr, type, event);
+      // has selector
+      if (tPtr->getSelectorValid())
+      {
+        int index = tPtr->getSelectorIndex();
+        lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? index-- : index++;
+        tPtr->showSelector(index);
+        publishSelectorEvent(tPtr, tPtr->getSelectorIndex());
+      }
+      // up / down events only
+      else
+      {
+        if (tPtr->getStyle() == TS_BUTTON_PREV_NEXT)
+          type = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? "prev" : "next";
+        if (tPtr->getStyle() == TS_BUTTON_LEFT_RIGHT)
+          type = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? "left" : "right";
+        if (tPtr->getStyle() == TS_BUTTON_UP_DOWN)
+          type = lv_obj_has_flag(btn, LV_OBJ_FLAG_USER_1) ? "up" : "down";
+        const char *event = (code == LV_EVENT_SHORT_CLICKED) ? "single" : "hold";
+        publishPrevNextEvent(tPtr, type, event);
+      }
     }
   }
 
@@ -1418,6 +1445,16 @@ void publishBacklightEvent(int brightness)
     if (json.containsKey("dropDownLabel"))
     {
       tile->setDropDownLabel(json["dropDownLabel"]);
+    }
+
+    if (json.containsKey("selectorList"))
+    {
+      tile->setSelectorList(json["selectorList"]);
+    }
+
+    if (json.containsKey("selectorSelect"))
+    {
+      tile->setSelectorIndex(json["selectorSelect"].as<uint>());
     }
   }
 

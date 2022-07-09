@@ -607,3 +607,57 @@ void classTile::setDropDownIndicator(void)
 {
   lv_label_set_text(_linkedLabel, LV_SYMBOL_DOWN);
 }
+
+// methods for selector function
+void classTile::showSelector(int index)
+{
+  if (lv_obj_is_valid(_roller))
+  {
+    lv_obj_del(_roller);
+  }
+
+  _roller = lv_roller_create(_btn);
+  lv_obj_set_style_border_width(_roller, 0, LV_PART_MAIN);
+  lv_roller_set_options(_roller, _selectorList.c_str(), LV_ROLLER_MODE_NORMAL);
+  lv_roller_set_visible_row_count(_roller, 3);
+
+  lv_obj_set_size(_roller, 70, 70);
+  lv_obj_set_style_text_line_space(_roller, 8, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(_roller, lv_color_lighten(colorBg, 50), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(_roller, 255, LV_PART_MAIN);
+
+  lv_obj_set_style_bg_color(_roller, colorOn, LV_PART_SELECTED);
+  lv_obj_set_style_radius(_roller, 5, LV_PART_MAIN);
+  lv_obj_align(_roller, LV_ALIGN_TOP_LEFT, 2, 2);
+  lv_obj_clear_flag(_roller, LV_OBJ_FLAG_CLICKABLE);
+
+  if (--index < 0) index = 0;
+  lv_roller_set_selected(_roller, index, LV_ANIM_OFF);
+  _selectorIndex = lv_roller_get_selected(_roller) + 1;
+
+  lv_obj_del_delayed(_roller, 2000);
+}
+
+// set the selector list
+void classTile::setSelectorList( const char* list)
+{
+  _selectorList = string(list);
+}
+
+// set index to selector list
+void classTile::setSelectorIndex(int index)
+{
+  _selectorIndex = index;
+}
+
+// set index to selector list
+int classTile::getSelectorIndex(void)
+{
+  return _selectorIndex;
+}
+
+// check if valid list exist
+bool classTile::getSelectorValid(void)
+{
+  return (_selectorList.size() > 0);
+}

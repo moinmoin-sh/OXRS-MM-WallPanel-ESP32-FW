@@ -21,6 +21,7 @@ protected:
   lv_obj_t *_dropDownList = NULL;
   lv_obj_t *_dropDownLabel = NULL;
   lv_obj_t *_imgBg = NULL;
+  lv_obj_t *_roller = NULL;
 
   int _screenIdx = 0;
   int _tileIdx = 0;
@@ -39,6 +40,8 @@ protected:
   const void *_imgConfig = NULL;
   const void *_imgOnConfig = NULL;
   uint16_t _dropDownIndex = 0;
+  int _selectorIndex = 0;
+  string _selectorList = "";
 
   void _button(lv_obj_t *parent, const void *img);
   void _reColorAll(lv_color_t color, lv_style_selector_t selector);
@@ -100,4 +103,10 @@ public :
   uint16_t getDropDownIndex(void);
   const char *getDropDownLabel(void);
   void setDropDownIndicator(void);
+
+  void setSelectorList(const char* list);
+  void showSelector(int index);
+  void setSelectorIndex(int index);
+  int getSelectorIndex(void);
+  bool getSelectorValid(void);
 };
