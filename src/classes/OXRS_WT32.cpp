@@ -409,12 +409,12 @@ void OXRS_WT32::_initialiseNetwork(byte * mac)
   Ethernet.init(ETHERNET_CS_PIN);
 
   // Reset Wiznet W5500
-  pinMode(WIZNET_RESET_PIN, OUTPUT);
-  digitalWrite(WIZNET_RESET_PIN, HIGH);
+  pinMode(WIZNET_RST_PIN, OUTPUT);
+  digitalWrite(WIZNET_RST_PIN, HIGH);
   delay(250);
-  digitalWrite(WIZNET_RESET_PIN, LOW);
+  digitalWrite(WIZNET_RST_PIN, LOW);
   delay(50);
-  digitalWrite(WIZNET_RESET_PIN, HIGH);
+  digitalWrite(WIZNET_RST_PIN, HIGH);
   delay(350);
 
   // Connect ethernet and get an IP address via DHCP

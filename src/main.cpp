@@ -1058,7 +1058,7 @@ void publishBacklightEvent(int brightness)
     classScreen *sPtr = screenVault.getStart();
     do
     {
-      sPtr->updateBgColor();
+      if (sPtr) sPtr->updateBgColor();
     } while ((sPtr = screenVault.getNext(sPtr->screenIdx)));
   }
 
@@ -1598,11 +1598,6 @@ void publishBacklightEvent(int brightness)
     ref.createHomeButton(footerButtonEventHandler, imgHome);
     ref.adScreenEventHandler(screenEventHandler);
     ref.setLabel("Settings");
-
-    updateInfoText();
-
-    // show HomeScreen
-    screenVault.show(SCREEN_HOME);
   }
   /**
     Setup
@@ -1690,7 +1685,12 @@ void publishBacklightEvent(int brightness)
 
   // Set up config/command schema (for self-discovery and adoption)
   setConfigSchema();
-  
+
+  // prepare info text
+  updateInfoText();
+
+  // show HomeScreen
+  screenVault.show(SCREEN_HOME);
 }
 
 /**
