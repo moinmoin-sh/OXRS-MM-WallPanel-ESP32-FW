@@ -1397,9 +1397,9 @@ void publishBacklightEvent(int brightness)
       }
     }
 
-    if (json.containsKey("sublabel"))
+    if (json.containsKey("subLabel"))
     {
-      tile->setSubLabel(json["sublabel"]);
+      tile->setSubLabel(json["subLabel"]);
     }
 
     if (json.containsKey("level"))
