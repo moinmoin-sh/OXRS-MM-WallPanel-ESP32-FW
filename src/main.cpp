@@ -227,6 +227,9 @@ void initStyleLut(void)
 int parseInputStyle(const char *inputStyle)
 {
   int i;
+
+  if (!inputStyle) return(TS_NONE);
+
   for (i = 0; i < TS_STYLE_COUNT; i++)
   {
     if (styleLut[i].styleStr)
@@ -431,12 +434,6 @@ void publishBacklightEvent(int brightness)
     screenSettings.setSlider(val);
     publishBacklightEvent(val);
   }
-
-  // update the slider
-  // void setBackLightSliderValue(int value)
-  // {
-  //   screenSettings.setSlider(value);
-  // }
 
   /*
      lcd interface
@@ -942,14 +939,22 @@ void publishBacklightEvent(int brightness)
     const void *img = NULL;
     int style;
 
+    // get the tile_style
+    style = parseInputStyle(styleStr);
+    if (!style)
+    {
+      wt32.print(F("[wpan] invalid style for screen/tile : "));
+      wt32.print(screenIdx);
+      wt32.print(F("/"));
+      wt32.println(tileIdx);
+      return;
+    }
+    
     // create screen if not exist
     createScreen(screenIdx);
 
     // delete tile reference if exist
     tileVault.remove(screenIdx, tileIdx);
-
-    // get the tile_style
-    style = parseInputStyle(styleStr);
 
     // get the icon image
     if (iconStr)
