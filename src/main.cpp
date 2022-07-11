@@ -553,7 +553,7 @@ void publishBacklightEvent(int brightness)
     char buffer[40];
 
     lv_obj_t *table = screenSettings.getInfoPanel();
-    lv_table_set_row_cnt(table, 7);
+    lv_table_set_row_cnt(table, 8);
     lv_table_set_col_cnt(table, 2);
 
     lv_table_set_cell_value(table, 0, 0, "Name:");
@@ -571,9 +571,16 @@ void publishBacklightEvent(int brightness)
     wt32.getIPAddressTxt(buffer);
     lv_table_set_cell_value(table, 5, 1, buffer);
 
-    lv_table_set_cell_value(table, 6, 0, "MQTT:");
-    wt32.getMQTTTopicTxt(buffer);
-    lv_table_set_cell_value(table, 6, 1, buffer);
+    lv_table_set_cell_value(table, 6, 0, "MODE:");
+    #ifndef WIFI_MODE
+      lv_table_set_cell_value(table, 6, 1, "Ethernet");
+    #else
+      lv_table_set_cell_value(table, 6, 1, "WiFi");
+    #endif
+
+      lv_table_set_cell_value(table, 7, 0, "MQTT:");
+      wt32.getMQTTTopicTxt(buffer);
+      lv_table_set_cell_value(table, 7, 1, buffer);
   }
 
   // check for changes in IP/MQTT connection and update warning sign in footer
@@ -1058,7 +1065,7 @@ void publishBacklightEvent(int brightness)
     classScreen *sPtr = screenVault.getStart();
     do
     {
-      sPtr->updateBgColor();
+      if (sPtr) sPtr->updateBgColor();
     } while ((sPtr = screenVault.getNext(sPtr->screenIdx)));
   }
 
@@ -1598,11 +1605,6 @@ void publishBacklightEvent(int brightness)
     ref.createHomeButton(footerButtonEventHandler, imgHome);
     ref.adScreenEventHandler(screenEventHandler);
     ref.setLabel("Settings");
-
-    updateInfoText();
-
-    // show HomeScreen
-    screenVault.show(SCREEN_HOME);
   }
   /**
     Setup
@@ -1690,7 +1692,12 @@ void publishBacklightEvent(int brightness)
 
   // Set up config/command schema (for self-discovery and adoption)
   setConfigSchema();
-  
+
+  // prepare info text
+  updateInfoText();
+
+  // show HomeScreen
+  screenVault.show(SCREEN_HOME);
 }
 
 /**
