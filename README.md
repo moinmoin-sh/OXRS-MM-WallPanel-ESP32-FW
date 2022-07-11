@@ -1,10 +1,6 @@
-# OXRS-MM-WallPanel-ESP32-FW
- 
-Preliminary Reprository to collect issues and ideas.
+This has moved to
 
-Will be moved into the OXRS-EcoSystem when relased.
+https://github.com/austinscreations/OXRS-AC-TP32-ESP-FW
 
 
-
-Please see `Releases` for latest binaries.
 
